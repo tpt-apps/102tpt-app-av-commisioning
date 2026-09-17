@@ -1,0 +1,2517 @@
+TPT App AV Commissioning
+
+1. Product Definition
+
+Product name: TPT AV Commissioning
+Repository: tpt-app-av-commissioning
+Product family: TPT Apps
+Category: Professional audiovisual system commissioning, validation, diagnostics, and handover
+Primary distribution: Offline desktop application
+Primary target: AV integrators, commissioning engineers, systems engineers, and facilities teams
+Target platforms: Windows first; Linux/macOS when device and driver support justify them
+
+1.1 Executive summary
+
+TPT AV Commissioning is a professional desktop application for commissioning, testing, diagnosing, documenting, and handing over audiovisual installations.
+
+The application turns a collection of AV devices and connections into a structured, testable system.
+
+Instead of an engineer manually checking every display, projector, audio path, control endpoint, network-controlled device, and signal route, the application provides:
+
+A project/system inventory.
+
+A device and endpoint model.
+
+A connection and signal-path model.
+
+Reusable commissioning test suites.
+
+Automated and semi-automated tests.
+
+Interactive diagnostics.
+
+Evidence capture.
+
+Defect tracking.
+
+Repeatable regression testing.
+
+Professional commissioning and handover reports.
+
+The product should be designed around a simple proposition:
+
+Commission an AV system once, prove that it works, and retain a repeatable record that it still works later.
+
+This is intentionally narrower than a general AV control platform. The product's job is to test and prove the installation, not operate the venue during normal use.
+
+2. Commercial Objective
+
+The target customer is a professional AV integrator whose profitability depends on getting installations commissioned and handed over quickly.
+
+Primary customers:
+
+Commercial AV integrators
+
+Systems integrators
+
+Corporate AV installation companies
+
+University AV teams
+
+Theatre/event technology integrators
+
+Government AV contractors
+
+Large facilities teams
+
+Managed AV service providers
+
+Broadcast/production systems integrators
+
+The economic argument should be straightforward:
+
+If an engineer spends several hours manually testing a room, and TPT reduces that time while producing better documentation, the software can pay for itself on a small number of projects.
+
+2.1 Pricing hypothesis
+
+Initial pricing should be validated with real integrators.
+
+Indicative positioning:
+
+Edition
+
+Indicative price
+
+Intended buyer
+
+Engineer
+
+$799
+
+Individual commissioning engineer
+
+Integrator
+
+$1,499
+
+Small/medium AV integrator
+
+Professional
+
+$2,999+
+
+Larger integrator/team
+
+Do not initially create a subscription dependency.
+
+A perpetual desktop licence with optional major-version upgrades is appropriate for an offline professional tool.
+
+Optional support contracts can be introduced later.
+
+3. Problem Being Solved
+
+AV installations are often assembled from devices that each work individually but can fail when combined.
+
+Examples:
+
+Source
+  ↓
+Network / HDMI / SDI
+  ↓
+Switcher
+  ↓
+Scaler
+  ↓
+Display
+
+or:
+
+Microphone
+  ↓
+DSP
+  ↓
+Amplifier
+  ↓
+Speaker
+
+or:
+
+Control panel
+  ↓
+Control processor
+  ↓
+Projector
+  ↓
+Feedback
+
+Commissioning must therefore test systems and signal paths, not merely individual devices.
+
+Typical problems include:
+
+incorrect routing
+
+missing signal
+
+EDID problems
+
+resolution mismatch
+
+HDCP problems
+
+audio routing errors
+
+incorrect channel mapping
+
+excessive latency
+
+audio/video sync problems
+
+device-control failures
+
+network connectivity failures
+
+wrong configuration
+
+firmware/configuration drift
+
+intermittent failures
+
+incorrect labels
+
+incomplete documentation
+
+The application should model these relationships explicitly.
+
+4. Product Principles
+
+4.1 Offline first
+
+Core functionality must work without internet access.
+
+No cloud account is required.
+
+Internet may optionally be used for:
+
+software updates
+
+licence activation
+
+optional device-driver updates
+
+optional documentation updates
+
+The application must remain usable in secure facilities with no internet access.
+
+4.2 Test the system, not only the device
+
+A device test answers:
+
+Does the projector respond?
+
+A system test answers:
+
+Can source 3 be routed through switcher 2 to projector 1 at the required resolution, with the correct audio path and control feedback?
+
+The second is the primary product value.
+
+4.3 Evidence first
+
+Every important test should be able to capture evidence.
+
+Examples:
+
+screenshot
+
+measured signal
+
+EDID
+
+device response
+
+audio measurement
+
+latency measurement
+
+network result
+
+operator note
+
+timestamp
+
+4.4 Repeatability
+
+A commissioning project should be executable again after:
+
+firmware changes
+
+equipment replacement
+
+room modifications
+
+maintenance
+
+support incidents
+
+This turns a one-time commissioning tool into a lifecycle validation tool.
+
+4.5 Human-in-the-loop
+
+Not every AV test can be automated.
+
+Tests must support:
+
+AUTOMATED
+SEMI-AUTOMATED
+MANUAL
+
+Manual tests must be first-class citizens rather than awkward exceptions.
+
+Example:
+
+"Confirm image is visually free of artefacts."
+
+The application presents the required test and asks the engineer to record:
+
+Pass
+
+Fail
+
+N/A
+
+Note
+
+Evidence
+
+5. Existing TPT Foundation
+
+The application should reuse TPT foundations rather than implementing duplicate AV infrastructure.
+
+5.1 tpt-av-control
+
+Primary device-control foundation.
+
+Potential responsibilities:
+
+OSC
+
+MIDI
+
+MIDI 2.0
+
+DMX
+
+Art-Net
+
+sACN
+
+WebRTC/control interfaces
+
+control surfaces
+
+device command/feedback abstractions
+
+The commissioning application should build higher-level device drivers and test procedures on top of the generic control layer.
+
+5.2 tpt-av-test
+
+Primary testing foundation.
+
+Reuse:
+
+test abstractions
+
+mock hardware
+
+deterministic test harnesses
+
+conformance concepts
+
+golden results
+
+fuzzing infrastructure
+
+real-time safety testing
+
+The commercial application should contribute generic improvements back where appropriate.
+
+5.3 tpt-audio
+
+Use for:
+
+audio device interaction
+
+routing
+
+level monitoring
+
+channel testing
+
+signal generation/monitoring where supported
+
+5.4 tpt-dsp
+
+Use for:
+
+frequency response
+
+signal level
+
+noise
+
+THD-related analysis where measurement methodology is sufficiently defined
+
+phase
+
+latency
+
+spectral analysis
+
+test-tone analysis
+
+5.5 tpt-cadence
+
+Use where audio codec handling is required for test media.
+
+5.6 tpt-kinetix
+
+Use for:
+
+test video generation/playback
+
+media decoding
+
+test signals
+
+video stream inspection
+
+timing information
+
+5.7 tpt-av-sync
+
+Potential future integration for:
+
+synchronisation measurements
+
+multi-device timing
+
+collaborative project editing
+
+5.8 tpt-av-asset
+
+Use for:
+
+test media assets
+
+cached screenshots
+
+test recordings
+
+generated evidence
+
+project asset management
+
+5.9 tpt-av-ui
+
+Use where its UI primitives are appropriate:
+
+signal-path diagrams
+
+timeline/evidence display
+
+meters
+
+waveform display
+
+device state
+
+6. Proposed Repository Structure
+
+tpt-app-av-commissioning/
+├── Cargo.toml
+├── README.md
+├── LICENSE
+├── CHANGELOG.md
+├── docs/
+│   ├── architecture.md
+│   ├── domain-model.md
+│   ├── device-drivers.md
+│   ├── test-model.md
+│   ├── report-format.md
+│   ├── project-format.md
+│   └── security.md
+├── crates/
+│   ├── tpt-app-av-commissioning-core/
+│   ├── tpt-app-av-commissioning-model/
+│   ├── tpt-app-av-commissioning-device/
+│   ├── tpt-app-av-commissioning-driver/
+│   ├── tpt-app-av-commissioning-test/
+│   ├── tpt-app-av-commissioning-runner/
+│   ├── tpt-app-av-commissioning-report/
+│   ├── tpt-app-av-commissioning-cli/
+│   ├── tpt-app-av-commissioning-tauri/
+│   └── tpt-app-av-commissioning-testkit/
+├── drivers/
+│   ├── generic/
+│   ├── osc/
+│   ├── midi/
+│   ├── network/
+│   └── examples/
+├── test-suites/
+│   ├── generic/
+│   └── examples/
+└── tests/
+    ├── integration/
+    ├── fixtures/
+    ├── golden/
+    └── mock/
+
+The exact number of crates may be reduced during initial implementation. Domain separation is more important than crate count.
+
+7. Core Domain Model
+
+7.1 Project
+
+struct Project {
+    id: ProjectId,
+    name: String,
+    client: Option<String>,
+    site: Option<String>,
+    rooms: Vec<RoomId>,
+    devices: Vec<DeviceId>,
+    connections: Vec<ConnectionId>,
+    test_suites: Vec<TestSuiteId>,
+}
+
+7.2 Room
+
+struct Room {
+    id: RoomId,
+    name: String,
+    description: Option<String>,
+    devices: Vec<DeviceId>,
+    connections: Vec<ConnectionId>,
+}
+
+Examples:
+
+Boardroom
+Training Room 1
+Auditorium
+Lecture Theatre 4
+Meeting Room 203
+
+7.3 Device
+
+struct Device {
+    id: DeviceId,
+    name: String,
+    manufacturer: Option<String>,
+    model: Option<String>,
+    serial_number: Option<String>,
+    firmware: Option<String>,
+    device_type: DeviceType,
+    endpoints: Vec<EndpointId>,
+    addresses: Vec<DeviceAddress>,
+}
+
+Device types should be extensible.
+
+Initial categories:
+
+enum DeviceType {
+    Display,
+    Projector,
+    Camera,
+    Microphone,
+    Speaker,
+    Amplifier,
+    DSP,
+    Switcher,
+    Matrix,
+    Scaler,
+    Encoder,
+    Decoder,
+    MediaServer,
+    ControlProcessor,
+    TouchPanel,
+    LightingController,
+    NetworkDevice,
+    Computer,
+    Other,
+}
+
+7.4 Endpoint
+
+An endpoint represents something that can send, receive, control, or measure a signal.
+
+enum EndpointKind {
+    VideoInput,
+    VideoOutput,
+    AudioInput,
+    AudioOutput,
+    Network,
+    Control,
+    Gpio,
+    Usb,
+    Serial,
+    Lighting,
+    Clock,
+}
+
+This distinction is important because a device may have many independently testable endpoints.
+
+8. Connection Model
+
+A connection represents a known relationship.
+
+struct Connection {
+    id: ConnectionId,
+    source: EndpointId,
+    destination: EndpointId,
+    signal_type: SignalType,
+    transport: Transport,
+    expected: ConnectionExpectation,
+}
+
+Signal types:
+
+enum SignalType {
+    Video,
+    Audio,
+    AudioVideo,
+    Network,
+    Control,
+    Lighting,
+    Clock,
+    Unknown,
+}
+
+Transport examples:
+
+enum Transport {
+    HDMI,
+    SDI,
+    DisplayPort,
+    USB,
+    AES3,
+    Analog,
+    Dante,
+    NDI,
+    RTP,
+    RTSP,
+    OSC,
+    MIDI,
+    ArtNet,
+    SACN,
+    Ethernet,
+    Serial,
+    Other,
+}
+
+The model must remain extensible because proprietary and emerging protocols will exist.
+
+9. Signal Path Model
+
+The application must be able to represent a path:
+
+Source A
+   ↓
+Matrix 1 input 3
+   ↓
+Matrix 1 output 7
+   ↓
+Scaler 2
+   ↓
+Projector 1
+
+The path is a graph rather than a simple list.
+
+struct SignalGraph {
+    nodes: Vec<NodeId>,
+    edges: Vec<EdgeId>,
+}
+
+This enables path-level testing.
+
+A path can have requirements:
+
+path:
+  source: presentation-pc
+  destination: projector-1
+
+requirements:
+  video:
+    resolution: 3840x2160
+    frame_rate: 60
+    hdr: false
+
+  audio:
+    channels: 2
+
+  latency:
+    max_ms: 100
+
+10. Device Driver Architecture
+
+Device-specific communication must not leak into test logic.
+
+trait DeviceDriver {
+    fn identity(&self) -> DeviceIdentity;
+    fn discover(&self) -> Result<DeviceState>;
+    fn get_state(&self) -> Result<DeviceState>;
+    fn execute(&self, command: DeviceCommand) -> Result<DeviceResponse>;
+    fn capabilities(&self) -> DeviceCapabilities;
+}
+
+A driver may communicate using:
+
+TCP
+
+UDP
+
+HTTP
+
+WebSocket
+
+OSC
+
+MIDI
+
+serial
+
+vendor SDK
+
+HID
+
+Drivers should be asynchronous where protocol behaviour requires it.
+
+10.1 Driver capabilities
+
+Drivers should declare capabilities:
+
+struct DeviceCapabilities {
+    can_power_on: bool,
+    can_power_off: bool,
+    can_read_state: bool,
+    can_select_input: bool,
+    can_generate_test_pattern: bool,
+    can_read_signal_status: bool,
+    can_read_edid: bool,
+    can_measure_latency: bool,
+}
+
+This prevents the test runner from assuming functionality that the device cannot provide.
+
+11. Generic Device Discovery
+
+Where possible, the application should support discovery.
+
+Potential mechanisms:
+
+network scan
+
+mDNS
+
+SSDP
+
+SNMP where appropriate
+
+vendor protocol discovery
+
+OSC discovery
+
+MIDI device enumeration
+
+local audio-device enumeration
+
+Discovery must be explicit and user-controlled.
+
+Never aggressively scan arbitrary networks by default.
+
+The user should select:
+
+Network interface
+IP range
+Discovery protocols
+Timeout
+
+12. Test Model
+
+The fundamental abstraction is a Test.
+
+trait CommissioningTest {
+    fn id(&self) -> TestId;
+    fn name(&self) -> &str;
+    fn requirements(&self) -> TestRequirements;
+    fn execute(&self, context: &TestContext) -> TestResult;
+}
+
+12.1 Test statuses
+
+enum TestStatus {
+    Pass,
+    Fail,
+    Warning,
+    Blocked,
+    Skipped,
+    Manual,
+    Inconclusive,
+}
+
+12.2 Test result
+
+struct TestResult {
+    test_id: TestId,
+    status: TestStatus,
+    started_at: DateTime,
+    completed_at: DateTime,
+    evidence: Vec<Evidence>,
+    measurements: Vec<Measurement>,
+    messages: Vec<String>,
+}
+
+13. Test Types
+
+13.1 Connectivity
+
+Examples:
+
+TCP reachable
+
+UDP reachable
+
+HTTP response
+
+OSC response
+
+MIDI device present
+
+serial connection available
+
+13.2 Device identity
+
+Verify:
+
+manufacturer
+
+model
+
+serial
+
+firmware
+
+expected address
+
+This detects wrong equipment being installed.
+
+13.3 Power
+
+Test:
+
+power state
+
+power on
+
+power off
+
+state feedback
+
+power recovery
+
+13.4 Input/output
+
+Examples:
+
+select HDMI input
+
+verify signal
+
+verify output
+
+verify expected route
+
+13.5 Video
+
+Measure:
+
+resolution
+
+frame rate
+
+colour format
+
+HDR state
+
+signal lock
+
+timing
+
+black level where measurable
+
+test pattern response
+
+13.6 Audio
+
+Measure:
+
+channel presence
+
+routing
+
+level
+
+silence
+
+frequency response
+
+polarity
+
+phase
+
+clipping
+
+noise
+
+13.7 Control
+
+Verify:
+
+Command
+   ↓
+Device
+   ↓
+Expected state
+   ↓
+Feedback
+
+A command succeeding at the transport level does not necessarily mean the device entered the expected state.
+
+13.8 Synchronisation
+
+Measure:
+
+audio/video offset
+
+device timing
+
+clock drift
+
+multi-device synchronisation
+
+13.9 Network
+
+Verify:
+
+IP
+
+gateway
+
+DNS where required
+
+latency
+
+packet loss
+
+link state
+
+required ports
+
+device reachability
+
+Do not perform intrusive network tests without explicit configuration.
+
+14. Test Suites
+
+Tests should be grouped into reusable suites.
+
+Example:
+
+suite:
+  name: "Boardroom Commissioning"
+
+  tests:
+    - device.identity
+    - device.network
+    - display.power
+    - display.input
+    - video.signal
+    - video.resolution
+    - audio.route
+    - audio.level
+    - control.touchpanel
+    - av.sync
+
+Suites may have dependencies.
+
+Example:
+
+Network Connectivity
+        ↓
+Device Discovery
+        ↓
+Device State
+        ↓
+Signal Routing
+        ↓
+Signal Validation
+        ↓
+End-to-End Test
+
+If a prerequisite fails, dependent tests should be marked Blocked rather than misleadingly reported as failures.
+
+15. Automated vs Manual Tests
+
+Each test declares its execution mode.
+
+enum ExecutionMode {
+    Automated,
+    SemiAutomated,
+    Manual,
+}
+
+Automated
+
+The software can determine the result.
+
+SemiAutomated
+
+The software prepares the test and captures measurements, but an engineer confirms the result.
+
+Manual
+
+The engineer performs the physical/visual test.
+
+Example:
+
+TEST: Projector Image Quality
+
+1. Display test pattern.
+2. Ask engineer to inspect:
+   - focus
+   - geometry
+   - uniformity
+   - dead pixels
+   - visible artefacts
+3. Capture screenshot.
+4. Record result.
+
+This is essential for real commissioning.
+
+16. Test Procedure DSL
+
+A declarative test format should be supported.
+
+Example:
+
+test:
+  id: projector.signal-path
+  name: "Projector Signal Path"
+
+  steps:
+    - command:
+        device: matrix-01
+        action: select_output
+        args:
+          output: 4
+
+    - command:
+        device: projector-01
+        action: select_input
+        args:
+          input: hdmi1
+
+    - wait:
+        milliseconds: 1500
+
+    - measure:
+        type: video_signal
+        device: projector-01
+
+    - assert:
+        field: resolution
+        equals: "3840x2160"
+
+    - assert:
+        field: frame_rate
+        equals: 60
+
+The DSL should be validated before execution.
+
+Do not allow arbitrary executable code in project files.
+
+17. Test Runner
+
+The runner must support:
+
+dependencies
+
+parallel execution
+
+serial execution
+
+timeouts
+
+retries
+
+cancellation
+
+device locking
+
+rate limits
+
+evidence capture
+
+result persistence
+
+Example scheduling:
+
+Room 1 network tests ────────┐
+Room 2 network tests ────────┤
+Room 3 network tests ────────┤
+                             ↓
+                       device tests
+                             ↓
+                     signal-path tests
+                             ↓
+                       end-to-end
+
+Two tests must not simultaneously manipulate the same device unless the driver explicitly declares that it is safe.
+
+18. Device Locking
+
+A device should have an execution lock.
+
+Example:
+
+struct DeviceLock {
+    device_id: DeviceId,
+    owner: TestExecutionId,
+}
+
+This prevents:
+
+Test A:
+    Set matrix output 4
+
+Test B:
+    Set matrix output 8
+
+from racing.
+
+Signal-path tests should therefore declare the devices they mutate.
+
+19. Measurement Model
+
+Measurements must contain:
+
+struct Measurement {
+    name: String,
+    value: MeasurementValue,
+    unit: Unit,
+    tolerance: Option<Tolerance>,
+    source: MeasurementSource,
+}
+
+Examples:
+
+Video Resolution = 3840x2160
+Frame Rate = 59.94 fps
+Audio Level = -20.3 dBFS
+Latency = 83 ms
+Packet Loss = 0.01 %
+
+Measurements must preserve raw values where possible.
+
+Do not round internally before evaluating tolerances.
+
+20. End-to-End Tests
+
+This is one of the most valuable features.
+
+Example:
+
+SOURCE
+  ↓
+SWITCHER
+  ↓
+SCALER
+  ↓
+DISPLAY
+
+The test should:
+
+Configure source.
+
+Configure switcher.
+
+Configure scaler.
+
+Configure destination.
+
+Wait for stabilisation.
+
+Detect signal.
+
+Validate resolution.
+
+Validate frame rate.
+
+Capture evidence.
+
+Restore previous state.
+
+Audio:
+
+MIC
+ ↓
+DSP
+ ↓
+AMP
+ ↓
+SPEAKER
+
+The test can:
+
+Generate controlled signal.
+
+Route it.
+
+Measure expected output.
+
+Verify level.
+
+Verify channel.
+
+Verify phase/polarity where measurable.
+
+Record result.
+
+21. Baseline / Regression Mode
+
+Once a project is commissioned, the user should be able to save a baseline.
+
+PROJECT BASELINE
+Version 1.0
+
+Devices:
+  24
+
+Connections:
+  71
+
+Tests:
+  186
+
+Result:
+  PASS
+
+Later:
+
+RUN BASELINE
+
+Changed:
+  Projector firmware
+  Matrix configuration
+
+Results:
+  181 PASS
+  3 WARNING
+  2 FAIL
+
+The application should highlight only meaningful changes.
+
+22. Configuration Drift Detection
+
+Compare current system state with recorded baseline.
+
+Detect:
+
+firmware change
+
+IP change
+
+device replacement
+
+configuration change
+
+signal-route change
+
+resolution change
+
+audio-routing change
+
+control configuration change
+
+A replacement device should not automatically be treated as identical merely because its model is the same.
+
+Use:
+
+manufacturer
+model
+serial
+firmware
+configuration fingerprint
+
+23. Defect Tracking
+
+A failed test should be convertible into a defect.
+
+struct Defect {
+    id: DefectId,
+    severity: Severity,
+    title: String,
+    description: String,
+    related_tests: Vec<TestId>,
+    evidence: Vec<Evidence>,
+    status: DefectStatus,
+}
+
+Statuses:
+
+Open
+Investigating
+Fixed
+Retest Required
+Verified
+Accepted
+Deferred
+
+This keeps commissioning and defect resolution in one workflow.
+
+24. Evidence System
+
+Evidence should be stored as immutable project assets.
+
+Types:
+
+enum EvidenceKind {
+    Screenshot,
+    Photo,
+    AudioRecording,
+    VideoRecording,
+    NetworkResult,
+    DeviceResponse,
+    Measurement,
+    Configuration,
+    OperatorNote,
+}
+
+A test result should reference evidence rather than embedding huge binary data in the database.
+
+25. Project Persistence
+
+Use SQLite.
+
+Store:
+
+project metadata
+
+rooms
+
+devices
+
+endpoints
+
+connections
+
+test suites
+
+test definitions
+
+test executions
+
+results
+
+measurements
+
+defects
+
+evidence metadata
+
+configuration baselines
+
+Binary evidence should be stored in a managed project asset directory.
+
+Suggested structure:
+
+Project/
+├── project.sqlite
+├── assets/
+│   ├── screenshots/
+│   ├── recordings/
+│   ├── configurations/
+│   └── evidence/
+├── reports/
+└── exports/
+
+Projects should be portable.
+
+26. Project File Format
+
+The project should have a human-readable manifest in addition to SQLite.
+
+Example:
+
+project:
+  schema_version: 1
+  name: "Client Boardroom"
+
+rooms:
+  - id: boardroom
+    name: "Boardroom"
+
+devices:
+  - id: projector-01
+    type: projector
+    manufacturer: Example
+    model: Example-5000
+    address: 192.168.1.40
+
+The SQLite database can hold execution history while the manifest captures portable system definition.
+
+This allows project definitions to be version controlled.
+
+27. Configuration Snapshots
+
+Where device protocols permit it, capture configuration.
+
+Examples:
+
+projector settings
+
+matrix routing
+
+DSP configuration
+
+control processor configuration
+
+network configuration
+
+display settings
+
+Snapshots must be labelled:
+
+Before commissioning
+After commissioning
+Before maintenance
+After maintenance
+
+Never silently overwrite the previous snapshot.
+
+28. Desktop UI
+
+28.1 Project Dashboard
+
+Display:
+
+Project
+Client
+Site
+Rooms
+Devices
+Tests
+Latest result
+Open defects
+Last baseline
+
+28.2 System Graph
+
+Interactive topology:
+
+PC
+ │
+ ▼
+Matrix
+ ├────────► Display 1
+ ├────────► Display 2
+ └────────► Projector
+
+Colour/status should communicate:
+
+healthy
+
+warning
+
+failed
+
+offline
+
+unknown
+
+Do not rely on colour alone.
+
+28.3 Device View
+
+Show:
+
+identity
+
+address
+
+firmware
+
+endpoints
+
+capabilities
+
+current state
+
+recent tests
+
+configuration snapshots
+
+28.4 Test Runner
+
+Show:
+
+Commissioning
+────────────────────────────
+
+[PASS] Network
+[PASS] Device identity
+[PASS] Video routing
+[RUN ] Audio routing
+[WAIT] Projector visual inspection
+[BLOCK] Final end-to-end
+
+28.5 Results
+
+Filter by:
+
+room
+
+device
+
+test
+
+severity
+
+status
+
+date
+
+28.6 Defects
+
+Dedicated defect list and workflow.
+
+29. Commissioning Wizard
+
+A first-class guided workflow should exist.
+
+Step 1 — Create project
+
+Step 2 — Add rooms
+
+Step 3 — Discover/add devices
+
+Step 4 — Confirm device identities
+
+Step 5 — Build topology
+
+Step 6 — Select commissioning profile
+
+Step 7 — Run automated preflight
+
+Step 8 — Run signal-path tests
+
+Step 9 — Perform manual tests
+
+Step 10 — Resolve defects
+
+Step 11 — Retest
+
+Step 12 — Generate handover package
+
+This should allow a junior engineer to execute a well-designed commissioning procedure without knowing every internal implementation detail.
+
+30. Handover Package
+
+Generate a complete project package containing:
+
+Commissioning Report
+Device Inventory
+Network Inventory
+Signal Topology
+Test Results
+Failed/Resolved Tests
+Defect Register
+Configuration Snapshots
+Evidence
+Test Profile
+Software Version
+Project Baseline
+
+The customer should receive a professional record of what was actually tested.
+
+31. Reporting
+
+Reports should support:
+
+PDF
+
+HTML
+
+CSV
+
+JSON
+
+The PDF should contain:
+
+Cover page
+
+Project details
+
+System summary
+
+Device inventory
+
+Topology
+
+Test summary
+
+Detailed test results
+
+Defects
+
+Evidence
+
+Engineer sign-off
+
+Software/profile version
+
+Date/time
+
+The report should distinguish:
+
+Automated test
+Manual inspection
+Engineer acceptance
+
+Do not imply an automated measurement occurred when it did not.
+
+32. Sign-Off
+
+Support electronic sign-off.
+
+Commissioning completed by:
+Engineer Name
+
+Date:
+2026-09-15
+
+Result:
+PASS WITH ACCEPTED EXCEPTIONS
+
+Exceptions:
+DEF-004
+DEF-007
+
+The application should record an audit event when a report is signed.
+
+33. Audit Log
+
+Record significant project actions:
+
+project created
+
+device added
+
+device modified
+
+test run
+
+result changed
+
+defect created
+
+defect closed
+
+baseline created
+
+configuration imported
+
+report generated
+
+report signed
+
+Each audit event should contain:
+
+struct AuditEvent {
+    timestamp: DateTime,
+    event_type: AuditEventType,
+    actor: Actor,
+    object_id: Option<Id>,
+    details: JsonValue,
+}
+
+34. CLI
+
+The CLI must use the same core engine as the GUI.
+
+Example:
+
+tpt-av-commissioning validate \
+  --project boardroom.tptav \
+  --suite commissioning
+
+Run a specific room:
+
+tpt-av-commissioning test \
+  --project boardroom.tptav \
+  --room boardroom
+
+Export:
+
+tpt-av-commissioning report \
+  --project boardroom.tptav \
+  --format pdf
+
+The CLI should support automation for integrators with existing deployment systems.
+
+35. Local API
+
+An optional localhost API can allow external tools to trigger tests.
+
+Default:
+
+127.0.0.1
+
+Potential endpoints:
+
+POST /projects/:id/runs
+GET  /runs/:id
+GET  /runs/:id/results
+POST /runs/:id/cancel
+GET  /devices
+GET  /health
+
+The API must never bind to all interfaces by default.
+
+Authentication is required if external binding is ever enabled.
+
+36. Network Safety
+
+This application will interact with real equipment.
+
+Safety requirements:
+
+explicit network interface selection
+
+explicit target selection
+
+configurable timeouts
+
+configurable scan ranges
+
+no unrestricted network scan by default
+
+no destructive commands by default
+
+confirmation before reboot/power-cycle tests
+
+device locking
+
+command logging
+
+dry-run mode
+
+A project should declare whether tests are permitted to change device state.
+
+Example:
+
+execution_policy:
+  allow_power_cycle: false
+  allow_configuration_changes: true
+  allow_network_changes: false
+
+37. Restore-State Mechanism
+
+Tests that modify state must declare whether state restoration is supported.
+
+Example:
+
+Before:
+Projector input = HDMI2
+Brightness = 50
+
+Test:
+Set input = HDMI1
+
+After:
+Restore HDMI2
+Brightness = 50
+
+If restoration fails, the result must explicitly report:
+
+Test passed, but device state restoration failed.
+
+This is critical for safe professional use.
+
+38. Security
+
+The application may control physical equipment.
+
+Requirements:
+
+no arbitrary command execution from project files
+
+no arbitrary shell commands in the test DSL
+
+strict protocol parsing
+
+bounded network reads
+
+authentication support for device protocols
+
+encrypted credentials where credentials are stored
+
+OS credential store where practical
+
+sensitive values excluded from reports by default
+
+project access permissions handled by the OS
+
+safe parsing of imported configuration files
+
+Credentials must never be committed into project manifests.
+
+39. Driver SDK
+
+A major long-term opportunity is allowing new device drivers without modifying the core.
+
+The SDK should define:
+
+trait DeviceDriver
+trait DeviceDiscovery
+trait DeviceCommand
+trait DeviceState
+trait DeviceCapability
+
+Drivers should be able to declare:
+
+protocol
+
+manufacturer
+
+model matching
+
+discovery method
+
+capabilities
+
+commands
+
+responses
+
+state parsing
+
+health checks
+
+Initially, drivers can be compiled into the application.
+
+A dynamic plugin system should only be added after the static architecture is proven.
+
+40. Generic Protocol Drivers
+
+The first release should prioritise protocols where generic drivers can provide immediate utility:
+
+OSC
+
+MIDI
+
+HTTP
+
+WebSocket
+
+TCP
+
+UDP
+
+SNMP where appropriate
+
+serial
+
+This reduces the need to implement dozens of vendor-specific drivers before launch.
+
+41. Device Profile Format
+
+Example:
+
+device:
+  id: generic-projector
+  match:
+    manufacturer: "Example"
+    model: "Projector-5000"
+
+  protocol:
+    type: tcp
+    port: 10001
+
+  commands:
+    power_on:
+      send: "POWER ON"
+
+    power_off:
+      send: "POWER OFF"
+
+  state:
+    power:
+      query: "POWER?"
+      parser: power_state
+
+The profile format must be versioned.
+
+42. Test Templates
+
+Ship standard templates.
+
+Examples:
+
+Display commissioning
+
+identity
+
+network
+
+power
+
+input
+
+resolution
+
+frame rate
+
+signal lock
+
+visual inspection
+
+Projector commissioning
+
+identity
+
+power
+
+input
+
+signal
+
+resolution
+
+geometry
+
+focus
+
+image uniformity
+
+lamp/laser status
+
+Audio commissioning
+
+device identity
+
+channel mapping
+
+routing
+
+level
+
+polarity
+
+phase
+
+noise
+
+latency
+
+Control commissioning
+
+panel connectivity
+
+command execution
+
+feedback
+
+state consistency
+
+error handling
+
+43. Project Templates
+
+Create templates for common environments:
+
+Boardroom
+Meeting Room
+Training Room
+Lecture Theatre
+Auditorium
+Digital Signage
+Video Conference Room
+Control Room
+Theatre
+
+Templates should be editable and must not assume a particular manufacturer.
+
+44. Performance
+
+The application should remain responsive while tests run.
+
+Requirements:
+
+asynchronous device communication
+
+bounded queues
+
+cancellation
+
+parallel independent tests
+
+persistent progress
+
+no blocking UI thread
+
+efficient SQLite transactions
+
+Network tests should use configurable concurrency.
+
+Media/signal analysis should use TPT's existing real-time-safe infrastructure where applicable.
+
+45. Offline Operation
+
+A fully offline installation must support:
+
+project creation
+
+device configuration
+
+manual tests
+
+automated local/network tests
+
+reports
+
+baselines
+
+defect tracking
+
+evidence
+
+sign-off
+
+Internet must not be required.
+
+46. Testing Strategy
+
+46.1 Unit tests
+
+Test:
+
+device models
+
+endpoint models
+
+topology
+
+test definitions
+
+DSL parsing
+
+tolerance logic
+
+result aggregation
+
+report generation
+
+46.2 Mock devices
+
+tpt-app-av-commissioning-testkit should provide virtual devices.
+
+Example:
+
+MockProjector
+MockDisplay
+MockMatrix
+MockDSP
+MockAudioEndpoint
+MockControlProcessor
+
+They should simulate:
+
+normal operation
+
+latency
+
+timeout
+
+malformed response
+
+incorrect state
+
+intermittent failure
+
+unreachable device
+
+46.3 Integration tests
+
+Run full tests against mock networks.
+
+Example:
+
+Mock PC
+  ↓
+Mock Matrix
+  ↓
+Mock Scaler
+  ↓
+Mock Display
+
+46.4 Golden reports
+
+Given:
+
+Project
+Test suite
+Mock device state
+
+the expected report should remain stable.
+
+46.5 Hardware-in-the-loop
+
+Eventually maintain a small real-device test lab.
+
+Use it to validate:
+
+protocol implementations
+
+device drivers
+
+timing
+
+state restoration
+
+firmware variations
+
+47. Fault Injection
+
+The testkit should deliberately simulate failures.
+
+Examples:
+
+Display offline
+Matrix output stuck
+Wrong EDID
+Audio channel missing
+Projector ignores power command
+Network latency
+Packet loss
+Incorrect feedback
+Device reboot
+
+The commissioning application must report these accurately.
+
+48. MVP
+
+The first commercial version should not attempt to support every AV protocol or manufacturer.
+
+Project management
+
+project
+
+rooms
+
+devices
+
+endpoints
+
+connections
+
+Generic connectivity
+
+TCP
+
+UDP
+
+HTTP
+
+OSC
+
+MIDI
+
+network discovery
+
+Basic tests
+
+connectivity
+
+identity
+
+power state
+
+input/output state
+
+signal presence
+
+basic video parameters
+
+basic audio parameters
+
+control/feedback
+
+Manual tests
+
+checklists
+
+evidence
+
+notes
+
+sign-off
+
+Test suites
+
+reusable
+
+ordered
+
+dependencies
+
+retries
+
+timeouts
+
+Reports
+
+PDF
+
+HTML
+
+JSON
+
+Baseline
+
+create
+
+compare
+
+detect configuration drift
+
+Defects
+
+create
+
+assign
+
+resolve
+
+retest
+
+This is enough for a professional MVP.
+
+49. Post-MVP
+
+Phase 2
+
+richer video measurements
+
+audio measurement suite
+
+latency measurement
+
+advanced topology visualisation
+
+more generic protocols
+
+more device profiles
+
+richer configuration snapshots
+
+Phase 3
+
+vendor driver ecosystem
+
+automatic device discovery
+
+advanced AV sync
+
+signal-path recording
+
+automated end-to-end test generation
+
+regression testing
+
+Phase 4
+
+team workflows
+
+LAN test workers
+
+shared project repositories
+
+remote site diagnostics
+
+service/maintenance mode
+
+Do not introduce cloud dependency merely to implement team features.
+
+50. High-Value Differentiator: Test Generation
+
+A long-term feature should automatically generate tests from the system graph.
+
+Given:
+
+PC-01
+  ↓
+Matrix-01
+  ↓
+Scaler-01
+  ↓
+Projector-01
+
+the system can infer:
+
+Test:
+PC-01 → Projector-01
+
+Requirements:
+- path exists
+- matrix route works
+- scaler locks
+- projector locks
+- resolution correct
+- frame rate correct
+
+This transforms the topology from documentation into an executable specification.
+
+That should be a major long-term differentiator.
+
+51. High-Value Differentiator: Digital Twin
+
+The project definition can eventually become a lightweight digital twin of the AV system.
+
+Physical system
+       ↕
+TPT model
+       ↕
+Tests
+       ↕
+Observed state
+
+The model records:
+
+what should exist
+
+how it should connect
+
+how it should behave
+
+what was actually observed
+
+This makes the software useful beyond initial commissioning.
+
+52. Lifecycle Mode
+
+After handover, switch the project into maintenance mode.
+
+Useful workflows:
+
+Commission
+   ↓
+Baseline
+   ↓
+Maintenance
+   ↓
+Run regression
+   ↓
+Detect drift
+   ↓
+Repair
+   ↓
+Retest
+   ↓
+Update baseline
+
+This creates recurring utility without requiring a recurring subscription.
+
+53. Commercial Differentiation
+
+Do not position the product as:
+
+"Software that can ping AV devices."
+
+That is too weak.
+
+Position it as:
+
+Executable commissioning for professional AV systems.
+
+The strongest differentiators should be:
+
+System topology becomes executable.
+
+Automated + manual commissioning in one workflow.
+
+Repeatable commissioning baselines.
+
+Configuration drift detection.
+
+Device and signal-path testing.
+
+Professional evidence and handover reports.
+
+Offline operation.
+
+Vendor-neutral architecture.
+
+CLI automation.
+
+Rust/TPT foundation for reliable local execution.
+
+54. Definition of Done
+
+The first commercial release is ready when:
+
+A complete AV project can be modelled.
+
+Rooms can contain devices and endpoints.
+
+Connections can form a signal graph.
+
+Devices can have protocol drivers.
+
+Generic network/control protocols work.
+
+Tests can execute against devices.
+
+Tests support dependencies and timeouts.
+
+Device mutations are serialised safely.
+
+Automated and manual tests are supported.
+
+Evidence can be attached to results.
+
+Failed tests can create defects.
+
+Baselines can be created.
+
+Current state can be compared against a baseline.
+
+A commissioning report can be generated.
+
+The report distinguishes automated and manual tests.
+
+Project data works fully offline.
+
+CLI and GUI use the same test engine.
+
+Mock devices can simulate failures.
+
+No malformed device response can crash the application.
+
+Network scanning requires explicit configuration.
+
+Destructive operations require explicit permission.
+
+Tests that modify state can restore state or clearly report failure to restore.
+
+A real AV installation has been commissioned with the software.
+
+55. Recommended Implementation Order
+
+Create Cargo workspace.
+
+Define project/domain model.
+
+Implement SQLite persistence.
+
+Implement room/device/endpoint/connection model.
+
+Implement topology graph.
+
+Integrate tpt-av-control.
+
+Build generic TCP/UDP/HTTP/OSC/MIDI drivers.
+
+Implement device capability model.
+
+Implement commissioning test abstraction.
+
+Implement test result/evidence model.
+
+Implement test runner.
+
+Implement device locking.
+
+Implement timeout/retry/cancellation.
+
+Implement test DSL.
+
+Implement generic connectivity tests.
+
+Implement identity/state tests.
+
+Implement basic video tests.
+
+Integrate tpt-audio/tpt-dsp.
+
+Implement basic audio tests.
+
+Implement manual test/checklist workflow.
+
+Implement evidence capture.
+
+Implement defect workflow.
+
+Implement baseline/regression mode.
+
+Implement configuration snapshots.
+
+Build topology UI.
+
+Build test-runner UI.
+
+Build report generation.
+
+Build CLI.
+
+Build mock-device testkit.
+
+Add fault-injection tests.
+
+Validate against real AV hardware.
+
+Package Windows application.
+
+Run private beta with AV integrators.
+
+Use beta feedback to determine which vendor drivers and advanced measurements justify the next release.
+
+56. Strategic Boundary
+
+tpt-app-av-commissioning must not become tpt-app-av-control.
+
+Normal operation belongs to tpt-av-control and eventually the AV Automation product.
+
+Commissioning owns:
+
+Model
+Discover
+Test
+Measure
+Compare
+Diagnose
+Document
+Prove
+
+Control owns:
+
+Operate
+Route
+Trigger
+Automate
+Synchronise
+
+The two products may share the same foundation and can eventually integrate, but their commercial purposes should remain distinct.
+
+The most important product-level idea is therefore:
+
+The AV system model is not merely documentation. It is an executable specification that can be tested against the physical installation.
