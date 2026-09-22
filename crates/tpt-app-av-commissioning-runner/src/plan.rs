@@ -17,6 +17,8 @@ pub struct RunOptions {
     pub timeout: Option<Duration>,
     /// Default retry count when a test does not declare one.
     pub default_retries: u32,
+    /// Minimum wall-clock delay between starting tests (rate limiting, §44).
+    pub min_start_interval: Option<Duration>,
     /// Apply the execution policy up front and report what would run without
     /// touching devices.
     pub dry_run: bool,
@@ -28,6 +30,7 @@ impl Default for RunOptions {
             concurrency: 4,
             timeout: None,
             default_retries: 0,
+            min_start_interval: None,
             dry_run: false,
         }
     }
@@ -55,7 +58,9 @@ impl PlannedTest {
 
     /// Whether this test mutates any of the same devices as `other`.
     pub fn shares_mutated_devices(&self, other: &PlannedTest) -> bool {
-        self.mutate_devices.iter().any(|d| other.mutate_devices.contains(d))
+        self.mutate_devices
+            .iter()
+            .any(|d| other.mutate_devices.contains(d))
     }
 }
 
@@ -108,7 +113,10 @@ impl RunPlanner {
                     return Err(PlanError::UnknownDependency(dep.clone()));
                 }
                 *indegree.entry(t.id.clone()).or_default() += 1;
-                dependents.entry(dep.clone()).or_default().push(t.id.clone());
+                dependents
+                    .entry(dep.clone())
+                    .or_default()
+                    .push(t.id.clone());
             }
         }
 
@@ -163,12 +171,16 @@ impl RunPlanner {
                 let blocked = by_id
                     .get(id)
                     .map(|t| {
-                        t.depends_on.iter().any(|dep| {
-                            !results.get(dep).map(passes).unwrap_or(false)
-                        })
+                        t.depends_on
+                            .iter()
+                            .any(|dep| !results.get(dep).map(passes).unwrap_or(false))
                     })
                     .unwrap_or(false);
-                let final_status = if blocked { TestStatus::Blocked } else { *status };
+                let final_status = if blocked {
+                    TestStatus::Blocked
+                } else {
+                    *status
+                };
                 (id.clone(), final_status)
             })
             .collect()
@@ -185,17 +197,12 @@ mod tests {
             depends_on: deps.iter().map(|d| TestId::new(*d)).collect(),
             devices: Vec::new(),
             mutate_devices: Vec::new(),
-            requirements: TestRequirements::manual(),
         }
     }
 
     #[test]
     fn serial_order_respects_dependencies() {
-        let planner = RunPlanner::new(vec![
-            test("c", &["b"]),
-            test("a", &[]),
-            test("b", &["a"]),
-        ]);
+        let planner = RunPlanner::new(vec![test("c", &["b"]), test("a", &[]), test("b", &["a"])]);
         let plan = planner.plan().unwrap();
         let ids: Vec<&str> = plan.order.iter().map(|t| t.id.as_str()).collect();
         // a must precede b which must precede c.

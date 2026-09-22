@@ -4,10 +4,11 @@
 use serde::{Deserialize, Serialize};
 
 /// A single fault to inject into a mock device.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Fault {
     /// Normal operation.
+    #[default]
     None,
     /// Every call responds after a delay (simulated in the mock).
     Delay(u64),
@@ -24,12 +25,6 @@ pub enum Fault {
     Unreachable,
     /// The device silently ignores power commands (lamp still on, etc.).
     IgnorePower,
-}
-
-impl Default for Fault {
-    fn default() -> Self {
-        Fault::None
-    }
 }
 
 impl Fault {

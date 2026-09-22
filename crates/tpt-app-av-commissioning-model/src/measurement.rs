@@ -108,21 +108,16 @@ pub enum MeasurementSource {
 }
 
 /// How a measured value is compared to an expected value within tolerance.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Tolerance {
     /// Measured value must equal the reference exactly.
+    #[default]
     Exact,
     /// Within an absolute band around the reference.
     Absolute { delta: f64 },
     /// Within a percentage of the reference.
     Percent { percent: f64 },
-}
-
-impl Default for Tolerance {
-    fn default() -> Self {
-        Tolerance::Exact
-    }
 }
 
 impl Tolerance {

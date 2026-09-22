@@ -21,7 +21,11 @@ pub enum DeviceLockError {
     #[error("device `{device}` is not locked")]
     NotLocked { device: DeviceId },
     #[error("lock on device `{device}` belongs to `{owner}`, not `{caller}`")]
-    OwnerMismatch { device: DeviceId, owner: String, caller: String },
+    OwnerMismatch {
+        device: DeviceId,
+        owner: String,
+        caller: String,
+    },
 }
 
 /// Tracks all currently held device locks.
@@ -36,7 +40,11 @@ impl LockRegistry {
     }
 
     /// Acquire a lock on `device` for `owner`.
-    pub fn acquire(&mut self, device: DeviceId, owner: impl Into<String>) -> Result<DeviceLock, DeviceLockError> {
+    pub fn acquire(
+        &mut self,
+        device: DeviceId,
+        owner: impl Into<String>,
+    ) -> Result<DeviceLock, DeviceLockError> {
         let owner = owner.into();
         if let Some(existing) = self.locks.get(&device) {
             return Err(DeviceLockError::AlreadyLocked {
@@ -63,13 +71,11 @@ impl LockRegistry {
             None => Err(DeviceLockError::NotLocked {
                 device: device.clone(),
             }),
-            Some(existing) if existing.owner != caller => {
-                Err(DeviceLockError::OwnerMismatch {
-                    device: device.clone(),
-                    owner: existing.owner.clone(),
-                    caller: caller.to_owned(),
-                })
-            }
+            Some(existing) if existing.owner != caller => Err(DeviceLockError::OwnerMismatch {
+                device: device.clone(),
+                owner: existing.owner.clone(),
+                caller: caller.to_owned(),
+            }),
             Some(_) => {
                 self.locks.remove(device);
                 Ok(())

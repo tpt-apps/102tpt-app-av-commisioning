@@ -13,7 +13,7 @@ use tpt_app_av_commissioning_device::{DeviceIdentity, DeviceState};
 
 /// The scope a discovery pass may search.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+#[serde(tag = "kind", content = "value", rename_all = "snake_case")]
 pub enum DiscoveryScope {
     /// A single host.
     Host(IpAddr),

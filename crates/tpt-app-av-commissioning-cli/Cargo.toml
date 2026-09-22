@@ -12,6 +12,7 @@ categories.workspace = true
 [dependencies]
 tpt-app-av-commissioning-core.workspace = true
 tpt-app-av-commissioning-model.workspace = true
+tpt-app-av-commissioning-test.workspace = true
 
 [dev-dependencies]
 assert_cmd = "2"

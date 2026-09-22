@@ -1,0 +1,8 @@
+# Invalid test procedure fixture: an assert without `equals`.
+
+test:
+  id: display.identity
+  name: "Missing equals"
+  steps:
+    - assert:
+        field: resolution

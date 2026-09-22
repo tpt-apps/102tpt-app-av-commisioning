@@ -39,6 +39,11 @@ impl Default for MockDevice {
 
 impl MockDevice {
     /// A projector: power, input, signal, resolution, frame rate.
+    ///
+    /// Presets intentionally start from defaults and override identity,
+    /// capabilities, and state — the reassignment pattern is clearer here
+    /// than a monolithic initializer.
+    #[allow(clippy::field_reassign_with_default)]
     pub fn projector() -> Self {
         let mut d = Self::default();
         d.identity = DeviceIdentity {
@@ -57,6 +62,7 @@ impl MockDevice {
     }
 
     /// A display.
+    #[allow(clippy::field_reassign_with_default)]
     pub fn display() -> Self {
         let mut d = Self::default();
         d.identity = DeviceIdentity {
@@ -76,6 +82,7 @@ impl MockDevice {
     }
 
     /// A matrix.
+    #[allow(clippy::field_reassign_with_default)]
     pub fn matrix() -> Self {
         let mut d = Self::default();
         d.identity = DeviceIdentity {
@@ -91,6 +98,7 @@ impl MockDevice {
     }
 
     /// A DSP.
+    #[allow(clippy::field_reassign_with_default)]
     pub fn dsp() -> Self {
         let mut d = Self::default();
         d.identity = DeviceIdentity {
@@ -107,6 +115,7 @@ impl MockDevice {
     }
 
     /// A networked audio endpoint.
+    #[allow(clippy::field_reassign_with_default)]
     pub fn audio_endpoint() -> Self {
         let mut d = Self::default();
         d.identity = DeviceIdentity {
@@ -123,6 +132,7 @@ impl MockDevice {
     }
 
     /// A control processor (read-only capability set plus test pattern).
+    #[allow(clippy::field_reassign_with_default)]
     pub fn control_processor() -> Self {
         let mut d = Self::default();
         d.identity = DeviceIdentity {
@@ -155,16 +165,22 @@ impl MockDevice {
                 Ok(())
             }
             Fault::Timeout(ms) => Err(DriverError::Timeout(*ms)),
-            Fault::MalformedResponse(payload) => Err(DriverError::MalformedResponse(payload.clone())),
-            Fault::Unreachable => Err(DriverError::Unreachable("simulated network drop".to_owned())),
+            Fault::MalformedResponse(payload) => {
+                Err(DriverError::MalformedResponse(payload.clone()))
+            }
+            Fault::Unreachable => Err(DriverError::Unreachable(
+                "simulated network drop".to_owned(),
+            )),
             Fault::IncorrectField { field, value } => {
                 self.state.set(field.clone(), value.clone());
                 Ok(())
             }
             Fault::IntermittentFailure(n) => {
                 self.call_count += 1;
-                if *n == 0 || self.call_count % u64::from(*n) == 0 {
-                    Err(DriverError::Refused("simulated intermittent failure".to_owned()))
+                if *n == 0 || self.call_count.is_multiple_of(u64::from(*n)) {
+                    Err(DriverError::Refused(
+                        "simulated intermittent failure".to_owned(),
+                    ))
                 } else {
                     Ok(())
                 }
@@ -266,11 +282,13 @@ impl DeviceDriver for MockDevice {
             }
             DeviceCommand::MeasureLatency => {
                 gate(can.can_measure_latency)?;
-                self.state
-                    .set("latency_ms", match self.state.get("power") {
+                self.state.set(
+                    "latency_ms",
+                    match self.state.get("power") {
                         Some(StateValue::Boolean(true)) => 18,
                         _ => 0,
-                    });
+                    },
+                );
             }
             DeviceCommand::Arbitrary { command } => {
                 self.state.set("last_command", command.clone());
@@ -356,7 +374,10 @@ mod tests {
             value: "displayport".to_owned(),
         });
         let state = proj.get_state().unwrap();
-        assert_eq!(state.get("input"), Some(&StateValue::Text("displayport".to_owned())));
+        assert_eq!(
+            state.get("input"),
+            Some(&StateValue::Text("displayport".to_owned()))
+        );
     }
 
     #[test]

@@ -91,7 +91,7 @@ impl SnapshotStore {
             device: device.clone(),
             content: content.clone(),
             relative_path: path
-                .strip_prefix(&self.assets.root())
+                .strip_prefix(self.assets.root())
                 .unwrap_or(&path)
                 .to_string_lossy()
                 .replace('\\', "/"),
@@ -109,7 +109,7 @@ impl SnapshotStore {
         }
         let mut entries: Vec<_> = fs::read_dir(&dir)?
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map_or(false, |x| x == "json"))
+            .filter(|e| e.path().extension().is_some_and(|x| x == "json"))
             .collect();
         entries.sort_by_key(|e| e.file_name());
 
@@ -150,7 +150,11 @@ mod tests {
 
         let content = serde_json::json!({ "input": "hdmi3", "brightness": 50 });
         let snap = store
-            .save(SnapshotLabel::BeforeMaintenance, Some("projector-1".to_owned()), content)
+            .save(
+                SnapshotLabel::BeforeMaintenance,
+                Some("projector-1".to_owned()),
+                content,
+            )
             .unwrap();
         assert_eq!(snap.label, SnapshotLabel::BeforeMaintenance);
 
@@ -158,10 +162,20 @@ mod tests {
         assert_eq!(listed.len(), 1);
 
         store
-            .save(SnapshotLabel::AfterMaintenance, Some("projector-1".to_owned()), serde_json::json!({}))
+            .save(
+                SnapshotLabel::AfterMaintenance,
+                Some("projector-1".to_owned()),
+                serde_json::json!({}),
+            )
             .unwrap();
-        assert_eq!(store.list(SnapshotLabel::BeforeMaintenance).unwrap().len(), 1);
-        assert_eq!(store.list(SnapshotLabel::AfterMaintenance).unwrap().len(), 1);
+        assert_eq!(
+            store.list(SnapshotLabel::BeforeMaintenance).unwrap().len(),
+            1
+        );
+        assert_eq!(
+            store.list(SnapshotLabel::AfterMaintenance).unwrap().len(),
+            1
+        );
 
         std::fs::remove_dir_all(&dir).unwrap();
     }
@@ -201,7 +215,10 @@ mod tests {
         let dir = tmp_dir();
         let assets = ProjectAssets::new(&dir);
         let store = SnapshotStore::new(assets);
-        assert!(store.list(SnapshotLabel::BeforeCommissioning).unwrap().is_empty());
+        assert!(store
+            .list(SnapshotLabel::BeforeCommissioning)
+            .unwrap()
+            .is_empty());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

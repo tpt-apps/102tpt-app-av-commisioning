@@ -140,6 +140,9 @@ mod tests {
     fn device_type_string_forms() {
         assert_eq!(DeviceType::Dsp.as_str(), "dsp");
         assert_eq!(DeviceType::ControlProcessor.as_str(), "control_processor");
-        assert_eq!(serde_json::to_string(&DeviceType::Matrix).unwrap(), "\"matrix\"");
+        assert_eq!(
+            serde_json::to_string(&DeviceType::Matrix).unwrap(),
+            "\"matrix\""
+        );
     }
 }

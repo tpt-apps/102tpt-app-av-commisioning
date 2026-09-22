@@ -90,10 +90,9 @@ mod tests {
 
     #[test]
     fn capability_set_builder() {
-        let caps = DeviceCapabilities::from(&[
-            DeviceCapability::CanPowerOn,
-            DeviceCapability::CanReadState,
-        ][..]);
+        let caps = DeviceCapabilities::from(
+            &[DeviceCapability::CanPowerOn, DeviceCapability::CanReadState][..],
+        );
         assert!(caps.can_power_on);
         assert!(caps.can_read_state);
         assert!(!caps.can_select_input);

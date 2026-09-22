@@ -44,14 +44,21 @@ impl TestStatus {
     /// Whether this status should be treated as needing human attention in a
     /// summary view.
     pub fn needs_attention(&self) -> bool {
-        matches!(self, TestStatus::Fail | TestStatus::Warning | TestStatus::Inconclusive)
+        matches!(
+            self,
+            TestStatus::Fail | TestStatus::Warning | TestStatus::Inconclusive
+        )
     }
 
     /// Whether the test actually ran (as opposed to skipped/blocked).
     pub fn ran(&self) -> bool {
         matches!(
             self,
-            TestStatus::Pass | TestStatus::Fail | TestStatus::Warning | TestStatus::Inconclusive | TestStatus::Manual
+            TestStatus::Pass
+                | TestStatus::Fail
+                | TestStatus::Warning
+                | TestStatus::Inconclusive
+                | TestStatus::Manual
         )
     }
 }
@@ -75,6 +82,9 @@ mod tests {
 
     #[test]
     fn status_string_forms() {
-        assert_eq!(serde_json::to_string(&TestStatus::Blocked).unwrap(), "\"blocked\"");
+        assert_eq!(
+            serde_json::to_string(&TestStatus::Blocked).unwrap(),
+            "\"blocked\""
+        );
     }
 }

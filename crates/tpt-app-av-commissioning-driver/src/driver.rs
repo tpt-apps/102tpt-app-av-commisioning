@@ -1,6 +1,9 @@
 //! Driver SDK `DeviceDriver` trait and error type.
 
-use tpt_app_av_commissioning_device::{DeviceCapabilities, DeviceCommand, DeviceIdentity, DeviceResponse, DeviceState};
+use async_trait::async_trait;
+use tpt_app_av_commissioning_device::{
+    DeviceCapabilities, DeviceCommand, DeviceIdentity, DeviceResponse, DeviceState,
+};
 
 use crate::error::DriverError;
 
@@ -35,8 +38,12 @@ pub trait DeviceDriver {
 ///
 /// Blocking drivers may be wrapped in the async facade; this is the hook the
 /// runner uses to avoid blocking the UI thread (see §44).
+#[async_trait]
 pub trait AsyncDeviceDriver {
     async fn discover_async(&mut self) -> Result<DeviceState, DriverError>;
     async fn get_state_async(&mut self) -> Result<DeviceState, DriverError>;
-    async fn execute_async(&mut self, command: DeviceCommand) -> Result<DeviceResponse, DriverError>;
+    async fn execute_async(
+        &mut self,
+        command: DeviceCommand,
+    ) -> Result<DeviceResponse, DriverError>;
 }

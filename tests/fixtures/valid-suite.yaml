@@ -1,0 +1,15 @@
+# Valid test procedure fixture conforming to the §16 DSL.
+
+test:
+  id: display.identity
+  name: "Display Identity"
+  mode: automated
+
+  steps:
+    - measure:
+        type: device_identity
+        device: display-01
+
+    - assert:
+        field: firmware
+        equals: "1.2.3"

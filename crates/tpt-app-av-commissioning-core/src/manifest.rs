@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 use serde_yaml_ng::Value;
 
 use tpt_app_av_commissioning_model::{
-    Connection, ConnectionExpectation, Device, DeviceAddress, DeviceType, Endpoint,
-    EndpointKind, Project, Room, SignalType, Transport,
+    Connection, ConnectionExpectation, Device, DeviceAddress, DeviceType, Endpoint, EndpointKind,
+    Project, Room, SignalType, Transport,
 };
 
 /// The current manifest schema version.
@@ -34,7 +34,7 @@ impl From<serde_yaml_ng::Error> for ManifestError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Manifest {
     pub project: ManifestProject,
@@ -48,7 +48,7 @@ pub struct Manifest {
     pub connections: Vec<ManifestConnection>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ManifestProject {
     pub name: String,
@@ -61,7 +61,7 @@ pub struct ManifestProject {
     pub site: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ManifestRoom {
     pub id: String,
@@ -70,7 +70,7 @@ pub struct ManifestRoom {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ManifestDevice {
     pub id: String,
@@ -89,7 +89,7 @@ pub struct ManifestDevice {
     pub address: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ManifestEndpoint {
     pub id: String,
@@ -98,7 +98,7 @@ pub struct ManifestEndpoint {
     pub kind: EndpointKind,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ManifestConnection {
     pub id: String,
@@ -130,9 +130,24 @@ impl Manifest {
     }
 
     /// Build a `Project` plus its entities from the manifest.
-    pub fn to_model(&self) -> (Project, Vec<Room>, Vec<Device>, Vec<Endpoint>, Vec<Connection>) {
-        let id = self.project.id.clone().unwrap_or_else(|| "project".to_owned());
-        let mut project = Project::new(tpt_app_av_commissioning_model::ProjectId::new(id.clone()), &self.project.name);
+    pub fn to_model(
+        &self,
+    ) -> (
+        Project,
+        Vec<Room>,
+        Vec<Device>,
+        Vec<Endpoint>,
+        Vec<Connection>,
+    ) {
+        let id = self
+            .project
+            .id
+            .clone()
+            .unwrap_or_else(|| "project".to_owned());
+        let mut project = Project::new(
+            tpt_app_av_commissioning_model::ProjectId::new(id.clone()),
+            &self.project.name,
+        );
         project.client = self.project.client.clone();
         project.site = self.project.site.clone();
 
@@ -140,7 +155,8 @@ impl Manifest {
             .rooms
             .iter()
             .map(|r| {
-                let mut room = Room::new(tpt_app_av_commissioning_model::RoomId::new(&r.id), &r.name);
+                let mut room =
+                    Room::new(tpt_app_av_commissioning_model::RoomId::new(&r.id), &r.name);
                 room.description = r.description.clone();
                 room
             })
@@ -234,7 +250,7 @@ fn contains_executable(value: &Value, depth: u32) -> bool {
     }
     match value {
         Value::Tagged(tagged) => {
-            if !is_safe_tag(tagged.tag.as_str()) {
+            if !is_safe_tag(&tagged.tag.to_string()) {
                 return true;
             }
             contains_executable(&tagged.value, depth + 1)
@@ -331,6 +347,8 @@ connections:
     #[test]
     fn rejects_executable_content() {
         assert!(!Manifest::contains_executable_content(SAMPLE));
-        assert!(Manifest::contains_executable_content("!python/object:os.system {}\n"));
+        assert!(Manifest::contains_executable_content(
+            "!python/object:os.system {}\n"
+        ));
     }
 }

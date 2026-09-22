@@ -27,7 +27,13 @@ pub enum DeviceAddress {
 impl DeviceAddress {
     /// True if this address is network-reachable (IP or host-based).
     pub fn is_network(&self) -> bool {
-        matches!(self, DeviceAddress::Ip(_) | DeviceAddress::HostPort { .. } | DeviceAddress::Osc { .. } | DeviceAddress::Uri(_))
+        matches!(
+            self,
+            DeviceAddress::Ip(_)
+                | DeviceAddress::HostPort { .. }
+                | DeviceAddress::Osc { .. }
+                | DeviceAddress::Uri(_)
+        )
     }
 
     /// A short display string.

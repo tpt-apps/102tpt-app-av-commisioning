@@ -1,0 +1,11 @@
+# Malicious fixture: DSL smuggling executable content via a custom YAML tag.
+# Must be rejected by validation (§36).
+
+test:
+  id: t1
+  name: "Smuggled code"
+  steps:
+    - command:
+        device: d1
+        action: exec
+        args: !python/object/apply:os.system ["reboot"]

@@ -159,15 +159,21 @@ impl Report {
 
     fn to_markdown(&self) -> String {
         let mut s = String::new();
-        s.push_str(&format!("# TPT AV Commissioning Report\n\n"));
-        s.push_str(&format!("**Project:** {} (`{}`)\n", self.project_name, self.project_id));
+        s.push_str("# TPT AV Commissioning Report\n\n");
+        s.push_str(&format!(
+            "**Project:** {} (`{}`)\n",
+            self.project_name, self.project_id
+        ));
         if let Some(client) = &self.client {
             s.push_str(&format!("**Client:** {}\n", client));
         }
         if let Some(site) = &self.site {
             s.push_str(&format!("**Site:** {}\n", site));
         }
-        s.push_str(&format!("**Generated:** {}\n", self.generated_at.to_rfc3339()));
+        s.push_str(&format!(
+            "**Generated:** {}\n",
+            self.generated_at.to_rfc3339()
+        ));
         s.push_str(&format!("**Software:** {}\n\n", self.software_version));
 
         s.push_str(&format!(
@@ -177,8 +183,8 @@ impl Report {
 
         let summary = &self.summary;
         s.push_str("## Summary\n\n");
-        s.push_str(&format!(
-            "| Total | Pass | Fail | Warning | Blocked | Skipped | Manual | Inconclusive |\n")
+        s.push_str(
+            "| Total | Pass | Fail | Warning | Blocked | Skipped | Manual | Inconclusive |\n",
         );
         s.push_str("|---|---|---|---|---|---|---|---|\n");
         s.push_str(&format!(
@@ -197,7 +203,12 @@ impl Report {
         s.push_str("| Test | Status | Messages |\n|---|---|---|\n");
         for r in &self.results {
             let messages = r.messages.join("; ");
-            s.push_str(&format!("| {} | {} | {} |\n", r.test_id, r.status.as_str(), messages));
+            s.push_str(&format!(
+                "| {} | {} | {} |\n",
+                r.test_id,
+                r.status.as_str(),
+                messages
+            ));
         }
 
         if !self.defects.is_empty() {

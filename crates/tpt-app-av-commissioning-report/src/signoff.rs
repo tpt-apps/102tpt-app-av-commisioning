@@ -33,25 +33,26 @@ impl Signatory {
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SignOffResult {
     Approved,
-    ApprovedWithExceptions {
-        exceptions: Vec<String>,
-    },
-    NotApproved {
-        reason: Option<String>,
-    },
+    ApprovedWithExceptions { exceptions: Vec<String> },
+    NotApproved { reason: Option<String> },
 }
 
 impl SignOffResult {
     /// Whether the installation passed handover.
     pub fn is_approved(&self) -> bool {
-        matches!(self, SignOffResult::Approved | SignOffResult::ApprovedWithExceptions { .. })
+        matches!(
+            self,
+            SignOffResult::Approved | SignOffResult::ApprovedWithExceptions { .. }
+        )
     }
 
     /// The display wording used on the report.
     pub fn wording(&self) -> String {
         match self {
             SignOffResult::Approved => "PASS".to_owned(),
-            SignOffResult::ApprovedWithExceptions { .. } => "PASS WITH ACCEPTED EXCEPTIONS".to_owned(),
+            SignOffResult::ApprovedWithExceptions { .. } => {
+                "PASS WITH ACCEPTED EXCEPTIONS".to_owned()
+            }
             SignOffResult::NotApproved { .. } => "NOT APPROVED".to_owned(),
         }
     }

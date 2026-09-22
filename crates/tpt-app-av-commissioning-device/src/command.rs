@@ -12,18 +12,33 @@ pub enum DeviceCommand {
     PowerOn,
     PowerOff,
     PowerCycle,
-    SetInput { input: String },
-    Freeze { frozen: bool },
-    GenerateTestPattern { pattern: String },
-    SetAudioVolume { level_db: f64 },
-    SetAudioMute { muted: bool },
-    SetRoute { source: String, destination: String },
+    SetInput {
+        input: String,
+    },
+    Freeze {
+        frozen: bool,
+    },
+    GenerateTestPattern {
+        pattern: String,
+    },
+    SetAudioVolume {
+        level_db: f64,
+    },
+    SetAudioMute {
+        muted: bool,
+    },
+    SetRoute {
+        source: String,
+        destination: String,
+    },
     ReadState,
     ReadEdid,
     MeasureLatency,
     /// Vendor/protocol-specific command, e.g. a raw OSC address or command
     /// string. The driver is responsible for interpreting it.
-    Arbitrary { command: String },
+    Arbitrary {
+        command: String,
+    },
 }
 
 /// A snapshot of state captured before executing a mutating command, so it

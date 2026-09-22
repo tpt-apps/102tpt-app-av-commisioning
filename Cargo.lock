@@ -658,6 +658,7 @@ dependencies = [
  "predicates",
  "tpt-app-av-commissioning-core",
  "tpt-app-av-commissioning-model",
+ "tpt-app-av-commissioning-test",
 ]
 
 [[package]]
@@ -684,6 +685,7 @@ name = "tpt-app-av-commissioning-device"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "thiserror",
  "tpt-app-av-commissioning-model",
  "uuid",
@@ -695,6 +697,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "serde",
+ "serde_json",
  "thiserror",
  "tpt-app-av-commissioning-device",
  "tpt-app-av-commissioning-model",
@@ -706,6 +709,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "serde",
+ "serde_json",
  "thiserror",
 ]
 
@@ -749,6 +753,8 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "serde",
+ "serde_json",
+ "serde_yaml_ng",
  "thiserror",
  "tpt-app-av-commissioning-device",
  "tpt-app-av-commissioning-driver",

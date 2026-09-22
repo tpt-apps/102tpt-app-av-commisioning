@@ -12,4 +12,6 @@ pub mod store;
 
 pub use manifest::{Manifest, ManifestError};
 pub use snapshot::{ConfigSnapshot, SnapshotLabel, SnapshotStore};
-pub use store::{ProjectAssets, ProjectMeta, ProjectStore, ProjectStoreError, StoredBaseline, StoredDefect};
+pub use store::{
+    ProjectAssets, ProjectMeta, ProjectStore, ProjectStoreError, StoredBaseline, StoredDefect,
+};

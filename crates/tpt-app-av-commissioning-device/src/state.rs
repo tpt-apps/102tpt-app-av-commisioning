@@ -27,7 +27,10 @@ impl DeviceState {
 
     /// Look up a field's value.
     pub fn get(&self, name: &str) -> Option<&StateValue> {
-        self.fields.iter().find(|f| f.name == name).map(|f| &f.value)
+        self.fields
+            .iter()
+            .find(|f| f.name == name)
+            .map(|f| &f.value)
     }
 
     /// True if the state carries no fields.

@@ -13,8 +13,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use sha2::{Digest, Sha256};
 
 use tpt_app_av_commissioning_model::{
-    Connection as ModelConnection, Device, Endpoint, EvidenceKind, EvidenceRef, ProjectId,
-    Room,
+    Connection as ModelConnection, Device, Endpoint, EvidenceKind, EvidenceRef, ProjectId, Room,
 };
 use tpt_app_av_commissioning_test::TestResult;
 
@@ -195,6 +194,7 @@ pub struct StoredBaseline {
 }
 
 /// SQLite-backed store for one project.
+#[derive(Debug)]
 pub struct ProjectStore {
     conn: Connection,
     root: PathBuf,
@@ -214,7 +214,10 @@ impl ProjectStore {
 
         let conn = Connection::open(&db)?;
         conn.execute_batch(SCHEMA)?;
-        let mut store = Self { conn, root: project_dir.to_path_buf() };
+        let mut store = Self {
+            conn,
+            root: project_dir.to_path_buf(),
+        };
         store.insert_project_meta(meta)?;
         Ok(store)
     }
@@ -289,7 +292,11 @@ impl ProjectStore {
     // -- rooms -------------------------------------------------------------
 
     /// Upsert a room row.
-    pub fn upsert_room(&mut self, project: &ProjectId, room: &Room) -> Result<(), ProjectStoreError> {
+    pub fn upsert_room(
+        &mut self,
+        project: &ProjectId,
+        room: &Room,
+    ) -> Result<(), ProjectStoreError> {
         self.conn.execute(
             "INSERT INTO rooms (id, project_id, name, description)
              VALUES (?1, ?2, ?3, ?4)
@@ -301,7 +308,9 @@ impl ProjectStore {
 
     /// List all rooms.
     pub fn list_rooms(&self) -> Result<Vec<Room>, ProjectStoreError> {
-        let mut stmt = self.conn.prepare("SELECT id, name, description FROM rooms")?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, name, description FROM rooms")?;
         let rows = stmt.query_map([], |r| {
             Ok(Room {
                 id: tpt_app_av_commissioning_model::RoomId::new(r.get::<_, String>(0)?),
@@ -317,7 +326,11 @@ impl ProjectStore {
     // -- devices -----------------------------------------------------------
 
     /// Upsert a device row (addresses serialised to JSON).
-    pub fn upsert_device(&mut self, project: &ProjectId, device: &Device) -> Result<(), ProjectStoreError> {
+    pub fn upsert_device(
+        &mut self,
+        project: &ProjectId,
+        device: &Device,
+    ) -> Result<(), ProjectStoreError> {
         let addresses = serde_json::to_string(&device.addresses)?;
         self.conn.execute(
             "INSERT INTO devices (id, project_id, name, device_type, manufacturer, model, serial_number, firmware, addresses)
@@ -355,15 +368,17 @@ impl ProjectStore {
             Ok(Device {
                 id: tpt_app_av_commissioning_model::DeviceId::new(r.get::<_, String>(0)?),
                 name: r.get(1)?,
-                device_type: serde_json::from_str(&r.get::<_, String>(2)?)
-                    .map_err(|e: serde_json::Error| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?,
+                device_type: serde_json::from_str(&r.get::<_, String>(2)?).map_err(
+                    |e: serde_json::Error| rusqlite::Error::ToSqlConversionFailure(Box::new(e)),
+                )?,
                 manufacturer: r.get(3)?,
                 model: r.get(4)?,
                 serial_number: r.get(5)?,
                 firmware: r.get(6)?,
                 endpoints: Vec::new(),
-                addresses: serde_json::from_str(&addresses)
-                    .map_err(|e: serde_json::Error| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?,
+                addresses: serde_json::from_str(&addresses).map_err(|e: serde_json::Error| {
+                    rusqlite::Error::ToSqlConversionFailure(Box::new(e))
+                })?,
             })
         })?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -389,14 +404,17 @@ impl ProjectStore {
 
     /// List all endpoints.
     pub fn list_endpoints(&self) -> Result<Vec<Endpoint>, ProjectStoreError> {
-        let mut stmt = self.conn.prepare("SELECT id, device_id, name, kind FROM endpoints")?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, device_id, name, kind FROM endpoints")?;
         let rows = stmt.query_map([], |r| {
             Ok(Endpoint {
                 id: tpt_app_av_commissioning_model::EndpointId::new(r.get::<_, String>(0)?),
                 device: tpt_app_av_commissioning_model::DeviceId::new(r.get::<_, String>(1)?),
                 name: r.get(2)?,
-                kind: serde_json::from_str(&r.get::<_, String>(3)?)
-                    .map_err(|e: serde_json::Error| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?,
+                kind: serde_json::from_str(&r.get::<_, String>(3)?).map_err(
+                    |e: serde_json::Error| rusqlite::Error::ToSqlConversionFailure(Box::new(e)),
+                )?,
             })
         })?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -405,7 +423,11 @@ impl ProjectStore {
     // -- connections -------------------------------------------------------
 
     /// Upsert a connection row.
-    pub fn upsert_connection(&mut self, project: &ProjectId, connection: &ModelConnection) -> Result<(), ProjectStoreError> {
+    pub fn upsert_connection(
+        &mut self,
+        project: &ProjectId,
+        connection: &ModelConnection,
+    ) -> Result<(), ProjectStoreError> {
         self.conn.execute(
             "INSERT INTO connections (id, project_id, source, destination, signal_type, transport, expected)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
@@ -430,9 +452,9 @@ impl ProjectStore {
 
     /// List all connections.
     pub fn list_connections(&self) -> Result<Vec<ModelConnection>, ProjectStoreError> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT id, source, destination, signal_type, transport, expected FROM connections")?;
+        let mut stmt = self.conn.prepare(
+            "SELECT id, source, destination, signal_type, transport, expected FROM connections",
+        )?;
         let rows = stmt.query_map([], |r| {
             let signal: String = r.get(3)?;
             let transport: String = r.get(4)?;
@@ -440,13 +462,18 @@ impl ProjectStore {
             Ok(ModelConnection {
                 id: tpt_app_av_commissioning_model::ConnectionId::new(r.get::<_, String>(0)?),
                 source: tpt_app_av_commissioning_model::EndpointId::new(r.get::<_, String>(1)?),
-                destination: tpt_app_av_commissioning_model::EndpointId::new(r.get::<_, String>(2)?),
-                signal_type: serde_json::from_str(&signal)
-                    .map_err(|e: serde_json::Error| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?,
-                transport: serde_json::from_str(&transport)
-                    .map_err(|e: serde_json::Error| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?,
-                expected: serde_json::from_str(&expected)
-                    .map_err(|e: serde_json::Error| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?,
+                destination: tpt_app_av_commissioning_model::EndpointId::new(
+                    r.get::<_, String>(2)?,
+                ),
+                signal_type: serde_json::from_str(&signal).map_err(|e: serde_json::Error| {
+                    rusqlite::Error::ToSqlConversionFailure(Box::new(e))
+                })?,
+                transport: serde_json::from_str(&transport).map_err(|e: serde_json::Error| {
+                    rusqlite::Error::ToSqlConversionFailure(Box::new(e))
+                })?,
+                expected: serde_json::from_str(&expected).map_err(|e: serde_json::Error| {
+                    rusqlite::Error::ToSqlConversionFailure(Box::new(e))
+                })?,
             })
         })?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -456,7 +483,12 @@ impl ProjectStore {
 
     /// Persist one test result: execution row, result row, measurements,
     /// and evidence metadata. Run-scoped so a full run can be reconstructed.
-    pub fn save_result(&mut self, run_id: &str, project: &ProjectId, result: &TestResult) -> Result<(), ProjectStoreError> {
+    pub fn save_result(
+        &mut self,
+        run_id: &str,
+        project: &ProjectId,
+        result: &TestResult,
+    ) -> Result<(), ProjectStoreError> {
         let payload = serde_json::to_string(result)?;
         let tx = self.conn.transaction()?;
         tx.execute(
@@ -527,8 +559,13 @@ impl ProjectStore {
             .prepare("SELECT payload FROM results WHERE run_id = ?1 ORDER BY started_at")?;
         let rows = stmt.query_map(params![run_id], |r| {
             let payload: String = r.get(0)?;
-            serde_json::from_str(&payload)
-                .map_err(|e: serde_json::Error| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e)))
+            serde_json::from_str(&payload).map_err(|e: serde_json::Error| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    0,
+                    rusqlite::types::Type::Text,
+                    Box::new(e),
+                )
+            })
         })?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
@@ -537,7 +574,7 @@ impl ProjectStore {
     pub fn list_runs(&self) -> Result<Vec<String>, ProjectStoreError> {
         let mut stmt = self
             .conn
-            .prepare("SELECT DISTINCT run_id FROM results ORDER BY MAX(started_at) DESC")?;
+            .prepare("SELECT run_id FROM results GROUP BY run_id ORDER BY MAX(started_at) DESC")?;
         let rows = stmt.query_map([], |r| r.get::<_, String>(0))?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
@@ -545,6 +582,7 @@ impl ProjectStore {
     // -- defects -----------------------------------------------------------
 
     /// Insert a new defect.
+    #[allow(clippy::too_many_arguments)]
     pub fn insert_defect(
         &mut self,
         project: &ProjectId,
@@ -573,7 +611,10 @@ impl ProjectStore {
     }
 
     /// List defects, optionally filtered by project.
-    pub fn list_defects(&self, project: &ProjectId) -> Result<Vec<StoredDefect>, ProjectStoreError> {
+    pub fn list_defects(
+        &self,
+        project: &ProjectId,
+    ) -> Result<Vec<StoredDefect>, ProjectStoreError> {
         let mut stmt = self.conn.prepare(
             "SELECT id, severity, title, description, related_tests, status
              FROM defects WHERE project_id = ?1 ORDER BY created_at",
@@ -596,9 +637,14 @@ impl ProjectStore {
 
     /// Save a baseline. `(project, label)` is unique: saving a second time
     /// with the same label fails so the previous snapshot is preserved.
-    pub fn save_baseline(&mut self, project: &ProjectId, label: &str, fingerprint: &str) -> Result<(), ProjectStoreError> {
+    pub fn save_baseline(
+        &mut self,
+        project: &ProjectId,
+        label: &str,
+        fingerprint: &str,
+    ) -> Result<(), ProjectStoreError> {
         let result = self.conn.execute(
-            "INSERT INTO configuration_baselines (id, project_id, label, fingerprint, created_at)
+            "INSERT OR IGNORE INTO configuration_baselines (id, project_id, label, fingerprint, created_at)
              VALUES (?1, ?2, ?3, ?4, ?5)",
             params![
                 uuid::Uuid::new_v4().to_string(),
@@ -615,7 +661,10 @@ impl ProjectStore {
     }
 
     /// List saved baselines for a project.
-    pub fn list_baselines(&self, project: &ProjectId) -> Result<Vec<StoredBaseline>, ProjectStoreError> {
+    pub fn list_baselines(
+        &self,
+        project: &ProjectId,
+    ) -> Result<Vec<StoredBaseline>, ProjectStoreError> {
         let mut stmt = self.conn.prepare(
             "SELECT id, label, fingerprint, created_at FROM configuration_baselines WHERE project_id = ?1 ORDER BY created_at",
         )?;
@@ -631,7 +680,10 @@ impl ProjectStore {
     }
 
     /// Evidence metadata for a project.
-    pub fn list_evidence(&self, project: &ProjectId) -> Result<Vec<EvidenceRef>, ProjectStoreError> {
+    pub fn list_evidence(
+        &self,
+        project: &ProjectId,
+    ) -> Result<Vec<EvidenceRef>, ProjectStoreError> {
         let mut stmt = self.conn.prepare(
             "SELECT id, kind, relative_path, description, captured_at, sha256
              FROM evidence_meta WHERE project_id = ?1 ORDER BY captured_at",
@@ -679,6 +731,11 @@ impl ProjectAssets {
         Self {
             root: project_dir.to_path_buf(),
         }
+    }
+
+    /// The project directory that roots this asset layout.
+    pub fn root(&self) -> &Path {
+        &self.root
     }
 
     /// Create the full directory layout.
@@ -788,16 +845,11 @@ fn hex(digest: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tpt_app_av_commissioning_model::{
-        DeviceAddress, DeviceType, EndpointKind,
-    };
-    use tpt_app_av_commissioning_test::{ExecutionMode, TestId};
+    use tpt_app_av_commissioning_model::{DeviceAddress, DeviceType, EndpointKind};
+    use tpt_app_av_commissioning_test::{ExecutionMode, TestId, TestStatus};
 
     fn tmp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!(
-            "tpt-av-comm-{name}-{}",
-            uuid::Uuid::new_v4()
-        ));
+        let dir = std::env::temp_dir().join(format!("tpt-av-comm-{name}-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         dir
     }
@@ -818,6 +870,7 @@ mod tests {
         drop(store);
         let store = ProjectStore::open(&dir).unwrap();
         assert_eq!(store.project_meta().unwrap().unwrap().name, "Boardroom");
+        drop(store);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -850,11 +903,16 @@ mod tests {
             "Projector 1",
             DeviceType::Projector,
         );
-        device.addresses.push(DeviceAddress::Ip("192.168.1.40".parse().unwrap()));
-        store.upsert_device(&ProjectId::new("prj-1"), &device).unwrap();
+        device
+            .addresses
+            .push(DeviceAddress::Ip("192.168.1.40".parse().unwrap()));
+        store
+            .upsert_device(&ProjectId::new("prj-1"), &device)
+            .unwrap();
         let devices = store.list_devices().unwrap();
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].addresses.len(), 1);
+        drop(store);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -864,22 +922,32 @@ mod tests {
         let mut store = ProjectStore::create(&dir, &meta()).unwrap();
         let project = ProjectId::new("prj-1");
 
-        store.upsert_device(
-            &project,
-            &Device::new(tpt_app_av_commissioning_model::DeviceId::new("m1"), "Matrix", DeviceType::Matrix),
-        ).unwrap();
-        store.upsert_endpoint(&Endpoint::new(
-            tpt_app_av_commissioning_model::EndpointId::new("m1-in1"),
-            "In 1",
-            EndpointKind::VideoInput,
-            tpt_app_av_commissioning_model::DeviceId::new("m1"),
-        )).unwrap();
-        store.upsert_endpoint(&Endpoint::new(
-            tpt_app_av_commissioning_model::EndpointId::new("m1-out1"),
-            "Out 1",
-            EndpointKind::VideoOutput,
-            tpt_app_av_commissioning_model::DeviceId::new("m1"),
-        )).unwrap();
+        store
+            .upsert_device(
+                &project,
+                &Device::new(
+                    tpt_app_av_commissioning_model::DeviceId::new("m1"),
+                    "Matrix",
+                    DeviceType::Matrix,
+                ),
+            )
+            .unwrap();
+        store
+            .upsert_endpoint(&Endpoint::new(
+                tpt_app_av_commissioning_model::EndpointId::new("m1-in1"),
+                "In 1",
+                EndpointKind::VideoInput,
+                tpt_app_av_commissioning_model::DeviceId::new("m1"),
+            ))
+            .unwrap();
+        store
+            .upsert_endpoint(&Endpoint::new(
+                tpt_app_av_commissioning_model::EndpointId::new("m1-out1"),
+                "Out 1",
+                EndpointKind::VideoOutput,
+                tpt_app_av_commissioning_model::DeviceId::new("m1"),
+            ))
+            .unwrap();
 
         let connection = ModelConnection::new(
             tpt_app_av_commissioning_model::ConnectionId::new("c1"),
@@ -890,6 +958,7 @@ mod tests {
         );
         store.upsert_connection(&project, &connection).unwrap();
         assert_eq!(store.list_connections().unwrap().len(), 1);
+        drop(store);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -913,7 +982,14 @@ mod tests {
             assert!(evidence.sha256.is_some());
             // Indexed naming means a second asset never collides/overwrites.
             let evidence2 = assets
-                .add_evidence("run-1", &project, EvidenceKind::DeviceResponse, b"other", "json", None)
+                .add_evidence(
+                    "run-1",
+                    &project,
+                    EvidenceKind::DeviceResponse,
+                    b"other",
+                    "json",
+                    None,
+                )
                 .unwrap();
 
             let result = TestResult::new(
@@ -929,6 +1005,7 @@ mod tests {
         assert_eq!(store.results_for_run("run-1").unwrap().len(), 1);
         assert_eq!(store.list_runs().unwrap(), vec!["run-1".to_owned()]);
         assert_eq!(store.list_evidence(&project).unwrap().len(), 2);
+        drop(store);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -937,10 +1014,18 @@ mod tests {
         let dir = tmp_dir("baseline");
         let project = ProjectId::new("prj-1");
         let mut store = ProjectStore::create(&dir, &meta()).unwrap();
-        store.save_baseline(&project, "after-commissioning", "fp-a").unwrap();
-        let err = store.save_baseline(&project, "after-commissioning", "fp-b").unwrap_err();
+        store
+            .save_baseline(&project, "after-commissioning", "fp-a")
+            .unwrap();
+        let err = store
+            .save_baseline(&project, "after-commissioning", "fp-b")
+            .unwrap_err();
         assert!(matches!(err, ProjectStoreError::BaselineExists(_)));
-        assert_eq!(store.list_baselines(&project).unwrap()[0].fingerprint, "fp-a");
+        assert_eq!(
+            store.list_baselines(&project).unwrap()[0].fingerprint,
+            "fp-a"
+        );
+        drop(store);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -963,6 +1048,7 @@ mod tests {
         let defects = store.list_defects(&project).unwrap();
         assert_eq!(defects.len(), 1);
         assert_eq!(defects[0].related_tests, vec!["display-input"]);
+        drop(store);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -982,7 +1068,11 @@ mod tests {
                 None,
             )
             .unwrap();
-        assert_eq!(assets.read_evidence(&evidence.relative_path).unwrap(), b"\x89PNG123");
+        assert_eq!(
+            assets.read_evidence(&evidence.relative_path).unwrap(),
+            b"\x89PNG123"
+        );
+        drop(store);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

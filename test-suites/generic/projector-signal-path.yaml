@@ -1,0 +1,45 @@
+# Example declarative test procedure (§16 of spec.txt).
+#
+# The DSL is data only — no arbitrary executable content. The `validate`
+# command (and `TestProcedure::from_yaml_str`) rejects anything else.
+#
+#   cargo run -p tpt-app-av-commissioning-cli -- validate \
+#       --suite test-suites/generic/projector-signal-path.yaml
+
+test:
+  id: projector.signal-path
+  name: "Projector Signal Path"
+
+  # Optional scheduling fields (map to TestRequirements):
+  # depends_on: [boot.system]
+  # max_duration_ms: 60000
+  # retries: 1
+  # mode: automated   # automated | semi_automated | manual
+
+  steps:
+    - command:
+        device: matrix-01
+        action: select_output
+        args:
+          output: 4
+
+    - command:
+        device: projector-01
+        action: select_input
+        args:
+          input: hdmi1
+
+    - wait:
+        milliseconds: 1500
+
+    - measure:
+        type: video_signal
+        device: projector-01
+
+    - assert:
+        field: resolution
+        equals: "3840x2160"
+
+    - assert:
+        field: frame_rate
+        equals: 60

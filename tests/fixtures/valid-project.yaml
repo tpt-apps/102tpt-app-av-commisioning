@@ -1,0 +1,43 @@
+# Minimum valid project manifest fixture (§26). schema_version must be 1.
+
+project:
+  schema_version: 1
+  name: "Client Boardroom"
+  client: "Example Corp"
+  site: "Level 2"
+
+rooms:
+  - id: room-01
+    name: "Boardroom"
+    description: "Main meeting space"
+
+devices:
+  - id: matrix-01
+    type: matrix
+    name: "Crestron DM-MD8X8"
+    manufacturer: "Crestron"
+    model: "DM-MD8X8"
+    address: "192.168.10.20"
+  - id: projector-01
+    type: projector
+    name: "Epson EB-L1100U"
+    manufacturer: "Epson"
+    model: "EB-L1100U"
+    address: "192.168.10.21"
+
+endpoints:
+  - id: m1-out1
+    device: matrix-01
+    name: "Output 1"
+    kind: video_output
+  - id: p1-in1
+    device: projector-01
+    name: "Input HDMI1"
+    kind: video_input
+
+connections:
+  - id: c1
+    source: m1-out1
+    destination: p1-in1
+    signal_type: video
+    transport: hdmi

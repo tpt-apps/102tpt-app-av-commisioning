@@ -101,7 +101,11 @@ impl SignalGraph {
     }
 
     /// Connections leaving `endpoint` (source -> destination direction).
-    pub fn outgoing<'a>(&'a self, endpoint: &EndpointId, connections: &'a [Connection]) -> Vec<&'a Connection> {
+    pub fn outgoing<'a>(
+        &'a self,
+        endpoint: &EndpointId,
+        connections: &'a [Connection],
+    ) -> Vec<&'a Connection> {
         self.adjacency
             .get(endpoint)
             .map(|ids| {
@@ -113,7 +117,11 @@ impl SignalGraph {
     }
 
     /// Connections entering `endpoint`.
-    pub fn incoming<'a>(&'a self, endpoint: &EndpointId, connections: &'a [Connection]) -> Vec<&'a Connection> {
+    pub fn incoming<'a>(
+        &'a self,
+        endpoint: &EndpointId,
+        connections: &'a [Connection],
+    ) -> Vec<&'a Connection> {
         self.reverse
             .get(endpoint)
             .map(|ids| {
@@ -128,7 +136,7 @@ impl SignalGraph {
     pub fn sources(&self) -> Vec<&EndpointId> {
         self.nodes
             .iter()
-            .filter(|n| self.reverse.get(*n).map_or(true, |v| v.is_empty()))
+            .filter(|n| self.reverse.get(*n).is_none_or(|v| v.is_empty()))
             .collect()
     }
 
@@ -136,7 +144,7 @@ impl SignalGraph {
     pub fn sinks(&self) -> Vec<&EndpointId> {
         self.nodes
             .iter()
-            .filter(|n| self.adjacency.get(*n).map_or(true, |v| v.is_empty()))
+            .filter(|n| self.adjacency.get(*n).is_none_or(|v| v.is_empty()))
             .collect()
     }
 
@@ -153,8 +161,7 @@ impl SignalGraph {
         }
         let mut visited: HashSet<EndpointId> = HashSet::new();
         visited.insert(source.clone());
-        let mut stack: Vec<(EndpointId, Vec<ConnectionId>)> =
-            Vec::new();
+        let mut stack: Vec<(EndpointId, Vec<ConnectionId>)> = Vec::new();
         for c in self.outgoing(source, connections) {
             stack.push((c.destination.clone(), vec![c.id.clone()]));
         }
@@ -206,7 +213,9 @@ impl SignalGraph {
         }
 
         let mut marks: HashMap<&EndpointId, Mark> = HashMap::new();
-        self.nodes.iter().any(|n| visit(n, self, connections, &mut marks))
+        self.nodes
+            .iter()
+            .any(|n| visit(n, self, connections, &mut marks))
     }
 }
 
@@ -221,7 +230,7 @@ mod tests {
     }
 
     impl Fixture {
-        /// pc-out -> matrix-in1, matrix-out1 -> scaler-in, scaler-out -> proj-in
+        /// pc-out -> matrix-in1 -> matrix-out1 -> scaler-in -> scaler-out -> proj-in
         fn new() -> Self {
             let mk = |id: &str, src: &str, dst: &str| Connection {
                 id: ConnectionId::new(id),
@@ -234,8 +243,10 @@ mod tests {
             Self {
                 connections: vec![
                     mk("c1", "pc-out", "matrix-in1"),
-                    mk("c2", "matrix-out1", "scaler-in"),
-                    mk("c3", "scaler-out", "proj-in"),
+                    mk("c2", "matrix-in1", "matrix-out1"),
+                    mk("c3", "matrix-out1", "scaler-in"),
+                    mk("c4", "scaler-in", "scaler-out"),
+                    mk("c5", "scaler-out", "proj-in"),
                 ],
             }
         }
@@ -246,7 +257,7 @@ mod tests {
         let f = Fixture::new();
         let g = SignalGraph::from_connections(&f.connections);
         assert_eq!(g.nodes().len(), 6);
-        assert_eq!(g.edges().len(), 3);
+        assert_eq!(g.edges().len(), 5);
     }
 
     #[test]
@@ -264,11 +275,15 @@ mod tests {
         let f = Fixture::new();
         let g = SignalGraph::from_connections(&f.connections);
         let path = g
-            .find_path(&EndpointId::new("pc-out"), &EndpointId::new("proj-in"), &f.connections)
+            .find_path(
+                &EndpointId::new("pc-out"),
+                &EndpointId::new("proj-in"),
+                &f.connections,
+            )
             .expect("a path must exist");
         assert_eq!(
             path.iter().map(|c| c.as_str()).collect::<Vec<_>>(),
-            vec!["c1", "c2", "c3"]
+            vec!["c1", "c2", "c3", "c4", "c5"]
         );
     }
 

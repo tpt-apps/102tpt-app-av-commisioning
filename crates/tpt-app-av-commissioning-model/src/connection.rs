@@ -164,7 +164,10 @@ mod tests {
     #[test]
     fn transport_and_signal_string_forms() {
         assert_eq!(Transport::DisplayPort.as_str(), "display_port");
-        assert_eq!(serde_json::to_string(&SignalType::AudioVideo).unwrap(), "\"audio_video\"");
+        assert_eq!(
+            serde_json::to_string(&SignalType::AudioVideo).unwrap(),
+            "\"audio_video\""
+        );
         assert_eq!(serde_json::to_string(&Transport::Sacn).unwrap(), "\"sacn\"");
     }
 

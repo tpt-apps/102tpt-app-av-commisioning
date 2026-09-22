@@ -60,7 +60,12 @@ pub struct Endpoint {
 
 impl Endpoint {
     /// Create a new endpoint belonging to `device`.
-    pub fn new(id: EndpointId, name: impl Into<String>, kind: EndpointKind, device: DeviceId) -> Self {
+    pub fn new(
+        id: EndpointId,
+        name: impl Into<String>,
+        kind: EndpointKind,
+        device: DeviceId,
+    ) -> Self {
         Self {
             id,
             name: name.into(),
@@ -78,7 +83,10 @@ mod tests {
     fn endpoint_kind_string_forms() {
         assert_eq!(EndpointKind::VideoInput.as_str(), "video_input");
         assert_eq!(EndpointKind::AudioOutput.as_str(), "audio_output");
-        assert_eq!(serde_json::to_string(&EndpointKind::Gpio).unwrap(), "\"gpio\"");
+        assert_eq!(
+            serde_json::to_string(&EndpointKind::Gpio).unwrap(),
+            "\"gpio\""
+        );
     }
 
     #[test]

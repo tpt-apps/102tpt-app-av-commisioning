@@ -28,4 +28,6 @@ pub use id::{ConnectionId, DeviceId, EndpointId, ProjectId, RoomId, TestSuiteId}
 pub use measurement::{Measurement, MeasurementSource, MeasurementValue, Tolerance, Unit};
 pub use project::Project;
 pub use room::Room;
-pub use signal_path::{AudioRequirement, LatencyRequirement, PathRequirement, SignalGraph, SignalPath};
+pub use signal_path::{
+    AudioRequirement, LatencyRequirement, PathRequirement, SignalGraph, SignalPath,
+};

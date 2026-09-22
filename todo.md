@@ -6,112 +6,115 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 0 — Project & Repo Setup
 
-- [ ] Create GitHub repo `tpt-solutions/tpt-app-av-commissioning`
-- [ ] Initialize Cargo workspace (`Cargo.toml`: `[workspace]`, `resolver = "2"`, `[workspace.package]`, `[workspace.dependencies]`)
-- [ ] Dual licensing (MIT OR Apache-2.0)
-  - [ ] Add `LICENSE-MIT`
-  - [ ] Add `LICENSE-APACHE`
-  - [ ] Set `license = "MIT OR Apache-2.0"` in `[workspace.package]`
-- [ ] Add `deny.toml` (cargo-deny license allow/deny lists; permit MIT + Apache-2.0)
-- [ ] Add root `README.md`
-- [ ] Add `CHANGELOG.md`
-- [ ] Add `docs/` (§6)
-  - [ ] `docs/architecture.md`
-  - [ ] `docs/domain-model.md`
-  - [ ] `docs/device-drivers.md`
-  - [ ] `docs/test-model.md`
-  - [ ] `docs/report-format.md`
-  - [ ] `docs/project-format.md`
-  - [ ] `docs/security.md`
-- [ ] Set up CI (GitHub Actions)
-  - [ ] Build
-  - [ ] Test
-  - [ ] `cargo fmt --check`
-  - [ ] `cargo clippy`
-  - [ ] `cargo deny check`
-- [ ] Scaffold empty crates under `crates/` (§6, each dual-licensed with own `Cargo.toml` + `src/lib.rs`)
-  - [ ] `tpt-app-av-commissioning-core`
-  - [ ] `tpt-app-av-commissioning-model`
-  - [ ] `tpt-app-av-commissioning-device`
-  - [ ] `tpt-app-av-commissioning-driver`
-  - [ ] `tpt-app-av-commissioning-test`
-  - [ ] `tpt-app-av-commissioning-runner`
-  - [ ] `tpt-app-av-commissioning-report`
-  - [ ] `tpt-app-av-commissioning-cli`
-  - [ ] `tpt-app-av-commissioning-tauri`
-  - [ ] `tpt-app-av-commissioning-testkit`
+- [x] Create GitHub repo `tpt-solutions/tpt-app-av-commissioning`
+- [x] Initialize Cargo workspace (`Cargo.toml`: `[workspace]`, `resolver = "2"`, `[workspace.package]`, `[workspace.dependencies]`)
+- [x] Dual licensing (MIT OR Apache-2.0)
+  - [x] Add `LICENSE-MIT`
+  - [x] Add `LICENSE-APACHE`
+  - [x] Set `license = "MIT OR Apache-2.0"` in `[workspace.package]`
+- [x] Add `deny.toml` (cargo-deny license allow/deny lists; permit MIT + Apache-2.0)
+- [x] Add root `README.md`
+- [x] Add `CHANGELOG.md`
+- [x] Add `docs/` (§6)
+  - [x] `docs/architecture.md`
+  - [x] `docs/domain-model.md`
+  - [x] `docs/device-drivers.md`
+  - [x] `docs/test-model.md`
+  - [x] `docs/report-format.md`
+  - [x] `docs/project-format.md`
+  - [x] `docs/security.md`
+- [x] Set up CI (GitHub Actions)
+  - [x] Build
+  - [x] Test
+  - [x] `cargo fmt --check`
+  - [x] `cargo clippy`
+  - [x] `cargo deny check`
+- [x] Scaffold empty crates under `crates/` (§6, each dual-licensed with own `Cargo.toml` + `src/lib.rs`)
+  - [x] `tpt-app-av-commissioning-core`
+  - [x] `tpt-app-av-commissioning-model`
+  - [x] `tpt-app-av-commissioning-device`
+  - [x] `tpt-app-av-commissioning-driver`
+  - [x] `tpt-app-av-commissioning-test`
+  - [x] `tpt-app-av-commissioning-runner`
+  - [x] `tpt-app-av-commissioning-report`
+  - [x] `tpt-app-av-commissioning-cli`
+  - [x] `tpt-app-av-commissioning-tauri`
+  - [x] `tpt-app-av-commissioning-testkit`
   - [ ] Revisit crate count/boundaries once core model + driver layer exist (§6 allows reduction; domain separation matters more than crate count)
-- [ ] Scaffold `drivers/` directory (§6)
-  - [ ] `drivers/generic/`
-  - [ ] `drivers/osc/`
-  - [ ] `drivers/midi/`
-  - [ ] `drivers/network/`
-  - [ ] `drivers/examples/`
-- [ ] Scaffold `test-suites/` directory (§6)
-  - [ ] `test-suites/generic/`
-  - [ ] `test-suites/examples/`
-- [ ] Scaffold `tests/` directory (§6)
-  - [ ] `tests/integration/`
-  - [ ] `tests/fixtures/`
-  - [ ] `tests/golden/`
-  - [ ] `tests/mock/`
+- [x] Scaffold `drivers/` directory (§6)
+  - [x] `drivers/generic/`
+  - [x] `drivers/osc/`
+  - [x] `drivers/midi/`
+  - [x] `drivers/network/`
+  - [x] `drivers/examples/`
+- [x] Scaffold `test-suites/` directory (§6)
+  - [x] `test-suites/generic/`
+  - [x] `test-suites/examples/`
+- [x] Scaffold `tests/` directory (§6)
+  - [x] `tests/integration/`
+  - [x] `tests/fixtures/`
+  - [x] `tests/golden/`
+  - [x] `tests/mock/`
 - [ ] Note external dependency `tpt-kinetix` (`https://github.com/tpt-solutions/tpt-kinetix`) is not yet vendored locally — revisit integration once it exists/is cloned (§5.6, §55)
 
 ## Phase 1 — Core Domain Model (§7)
 
-- [ ] `tpt-app-av-commissioning-model`
-  - [ ] `Project` struct (id, name, client, site, rooms, devices, connections, test_suites)
-  - [ ] `Room` struct (id, name, description, devices, connections)
-  - [ ] `Device` struct (id, name, manufacturer, model, serial_number, firmware, device_type, endpoints, addresses)
-  - [ ] `DeviceType` enum (Display, Projector, Camera, Microphone, Speaker, Amplifier, DSP, Switcher, Matrix, Scaler, Encoder, Decoder, MediaServer, ControlProcessor, TouchPanel, LightingController, NetworkDevice, Computer, Other) — extensible
-  - [ ] `Endpoint` struct + `EndpointKind` enum (VideoInput, VideoOutput, AudioInput, AudioOutput, Network, Control, Gpio, Usb, Serial, Lighting, Clock)
-  - [ ] `DeviceAddress` type
-  - [ ] Unit tests: device models, endpoint models (§46.1)
+- [x] `tpt-app-av-commissioning-model`
+  - [x] `Project` struct (id, name, client, site, rooms, devices, connections, test_suites)
+  - [x] `Room` struct (id, name, description, devices, connections)
+  - [x] `Device` struct (id, name, manufacturer, model, serial_number, firmware, device_type, endpoints, addresses)
+  - [x] `DeviceType` enum (Display, Projector, Camera, Microphone, Speaker, Amplifier, DSP, Switcher, Matrix, Scaler, Encoder, Decoder, MediaServer, ControlProcessor, TouchPanel, LightingController, NetworkDevice, Computer, Other) — extensible
+  - [x] `Endpoint` struct + `EndpointKind` enum (VideoInput, VideoOutput, AudioInput, AudioOutput, Network, Control, Gpio, Usb, Serial, Lighting, Clock)
+  - [x] `DeviceAddress` type
+  - [x] Unit tests: device models, endpoint models (§46.1)
 
 ## Phase 2 — Connection & Signal Path Model (§8–9)
 
-- [ ] `Connection` struct (id, source, destination, signal_type, transport, expected)
-- [ ] `SignalType` enum (Video, Audio, AudioVideo, Network, Control, Lighting, Clock, Unknown)
-- [ ] `Transport` enum (HDMI, SDI, DisplayPort, USB, AES3, Analog, Dante, NDI, RTP, RTSP, OSC, MIDI, ArtNet, SACN, Ethernet, Serial, Other) — extensible for proprietary/emerging protocols
-- [ ] `ConnectionExpectation` type
-- [ ] `SignalGraph` struct (nodes, edges) — graph, not a simple list
-- [ ] Path requirement schema (video resolution/frame_rate/hdr, audio channels, latency max_ms)
-- [ ] Unit tests: topology construction and traversal (§46.1)
+- [x] `Connection` struct (id, source, destination, signal_type, transport, expected)
+- [x] `SignalType` enum (Video, Audio, AudioVideo, Network, Control, Lighting, Clock, Unknown)
+- [x] `Transport` enum (HDMI, SDI, DisplayPort, USB, AES3, Analog, Dante, NDI, RTP, RTSP, OSC, MIDI, ArtNet, SACN, Ethernet, Serial, Other) — extensible for proprietary/emerging protocols
+- [x] `ConnectionExpectation` type
+- [x] `SignalGraph` struct (nodes, edges) — graph, not a simple list
+- [x] Path requirement schema (video resolution/frame_rate/hdr, audio channels, latency max_ms)
+- [x] Unit tests: topology construction and traversal (§46.1)
 
 ## Phase 3 — Persistence (§25–27)
 
-- [ ] SQLite schema
-  - [ ] project metadata
-  - [ ] rooms
-  - [ ] devices
-  - [ ] endpoints
-  - [ ] connections
-  - [ ] test suites
-  - [ ] test definitions
-  - [ ] test executions
-  - [ ] results
-  - [ ] measurements
-  - [ ] defects
-  - [ ] evidence metadata
-  - [ ] configuration baselines
-- [ ] Managed project asset directory layout (`assets/screenshots`, `assets/recordings`, `assets/configurations`, `assets/evidence`, `reports/`, `exports/`)
-- [ ] Human-readable project manifest format (YAML, `schema_version`, rooms/devices with human-readable ids) — version-controllable, portable
-- [ ] Configuration snapshot storage
-  - [ ] Label snapshots (Before commissioning / After commissioning / Before maintenance / After maintenance)
-  - [ ] Never silently overwrite previous snapshot
+- [x] SQLite schema
+  - [x] project metadata
+  - [x] rooms
+  - [x] devices
+  - [x] endpoints
+  - [x] connections
+  - [x] test suites
+  - [x] test definitions
+  - [x] test executions
+  - [x] results
+  - [x] measurements
+  - [x] defects
+  - [x] evidence metadata
+  - [x] configuration baselines
+- [x] Managed project asset directory layout (`assets/screenshots`, `assets/recordings`, `assets/configurations`, `assets/evidence`, `reports/`, `exports/`)
+- [x] Human-readable project manifest format (YAML, `schema_version`, rooms/devices with human-readable ids) — version-controllable, portable
+- [x] Configuration snapshot storage
+  - [x] Label snapshots (Before commissioning / After commissioning / Before maintenance / After maintenance)
+  - [x] Never silently overwrite previous snapshot
 
 ## Phase 4 — Device Driver Architecture (§10, §39)
 
-- [ ] `tpt-app-av-commissioning-driver`
-  - [ ] `DeviceDriver` trait (identity, discover, get_state, execute, capabilities)
-  - [ ] `DeviceDiscovery` trait
-  - [ ] `DeviceCommand` trait
-  - [ ] `DeviceState` trait
-  - [ ] `DeviceCapability` trait
-  - [ ] `DeviceCapabilities` struct (can_power_on, can_power_off, can_read_state, can_select_input, can_generate_test_pattern, can_read_signal_status, can_read_edid, can_measure_latency)
-  - [ ] Async driver support where protocol behaviour requires it
-- [ ] Integrate `tpt-av-control` as device-control foundation (OSC/MIDI/MIDI 2.0/DMX/Art-Net/sACN/WebRTC/control surfaces)
+- [x] `tpt-app-av-commissioning-driver`
+  - [x] `DeviceDriver` trait (identity, discover, get_state, execute, capabilities)
+  - [x] `DeviceDiscovery` trait
+  - [x] `DeviceCommand` enum (typed command list, incl. `Arbitrary` for vendor protocols) — see note below
+  - [x] `DeviceState` struct
+  - [x] `DeviceCapability` enum
+  - [x] `DeviceCapabilities` struct (can_power_on, can_power_off, can_read_state, can_select_input, can_generate_test_pattern, can_read_signal_status, can_read_edid, can_measure_latency)
+  - [x] Async driver support where protocol behaviour requires it (`AsyncDeviceDriver`)
+- [ ] Integrate `tpt-av-control` as device-control foundation (OSC/MIDI/MIDI 2.0/DMX/Art-Net/sACN/WebRTC/control surfaces) — external dependency, not yet vendored
 - [ ] Contribute generic improvements back to `tpt-av-control`/`tpt-av-test` where applicable
+
+> Note: `DeviceCommand`/`DeviceState`/`DeviceCapability` implemented as typed enums/structs rather
+> than traits — matches the later driver SDK phase and keeps drivers data-driven.
 
 ## Phase 5 — Generic Protocol Drivers (§40–41)
 
@@ -139,31 +142,33 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 7 — Test Model & Runner (§12, §17–18)
 
-- [ ] `tpt-app-av-commissioning-test`
-  - [ ] `CommissioningTest` trait (id, name, requirements, execute)
-  - [ ] `TestStatus` enum (Pass, Fail, Warning, Blocked, Skipped, Manual, Inconclusive)
-  - [ ] `TestResult` struct (test_id, status, started_at, completed_at, evidence, measurements, messages)
-  - [ ] `TestRequirements` type
-- [ ] `tpt-app-av-commissioning-runner`
-  - [ ] Dependency-aware scheduling (blocked-not-failed propagation, §14)
-  - [ ] Parallel execution
-  - [ ] Serial execution
-  - [ ] Timeouts
-  - [ ] Retries
-  - [ ] Cancellation
-  - [ ] Rate limits
-  - [ ] Result persistence
-  - [ ] `DeviceLock` struct (device_id, owner) — prevent concurrent device mutation races
-  - [ ] Signal-path tests declare devices they mutate
+- [x] `tpt-app-av-commissioning-test`
+  - [x] `CommissioningTest` trait (id, name, requirements, execute)
+  - [x] `TestStatus` enum (Pass, Fail, Warning, Blocked, Skipped, Manual, Inconclusive)
+  - [x] `TestResult` struct (test_id, status, started_at, completed_at, evidence, measurements, messages)
+  - [x] `TestRequirements` type
+- [x] `tpt-app-av-commissioning-runner`
+  - [x] Dependency-aware scheduling (blocked-not-failed propagation, §14) — `plan.rs`
+  - [x] Parallel execution (concurrency-slot worker pool, `execute.rs`) + 10 executor tests
+  - [x] Serial execution (concurrency = 1)
+  - [x] Timeouts (per-test max_duration, timeout override; abandoned-thread guard)
+  - [x] Retries (`effective_retries`; transient-error + timeout retry loops)
+  - [x] Cancellation (`CancelToken`, `RunObserver`/`CancelToken` wiring)
+  - [x] Rate limits (`min_start_interval` gap between scheduled starts)
+  - [x] `DeviceLock` struct (device_id, owner) + `LockRegistry` — prevent concurrent device mutation races (`lock.rs`)
+  - [x] Non-blocking `can_acquire` + dependency/active-mutation gates before dispatch
+  - [ ] Result persistence wiring (store persistence exists; executor hands results to `RunObserver`; app-layer persistence not yet wired)
+  - [ ] Signal-path tests declare devices they mutate (DSL `mutate_devices` exists; no executable-content risk — see §14)
 
 ## Phase 8 — Test Procedure DSL (§16)
 
-- [ ] Declarative YAML test format (id, name, steps: command/wait/measure/assert)
-- [ ] Schema validation before execution
-- [ ] Explicitly disallow arbitrary executable code in project/test files
+- [x] Declarative YAML test format (id, name, steps: command/wait/measure/assert)
+- [x] Schema validation before execution (`TestProcedure::validate`, `from_yaml_str`)
+- [x] Explicitly disallow arbitrary executable code in project/test files (executable-content guard mirrors the manifest guard; `docs/security.md`)
 
 ## Phase 9 — Test Types (§13)
 
+- [x] `TestKind` taxonomy enum (Connectivity, Identity, Power, InputOutput, Video, Audio, Control, Synchronization, Network — §13.1–13.9); categorization only, not yet wired to `TestDefinition`
 - [ ] Connectivity: TCP/UDP reachable, HTTP response, OSC response, MIDI device present, serial connection available
 - [ ] Device identity: manufacturer, model, serial, firmware, expected address
 - [ ] Power: power state, power on, power off, state feedback, power recovery
@@ -184,15 +189,15 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 11 — Evidence System (§24)
 
-- [ ] `EvidenceKind` enum (Screenshot, Photo, AudioRecording, VideoRecording, NetworkResult, DeviceResponse, Measurement, Configuration, OperatorNote)
-- [ ] Evidence stored as immutable project assets (referenced from results, not embedded in DB)
+- [x] `EvidenceKind` enum (Screenshot, Photo, AudioRecording, VideoRecording, NetworkResult, DeviceResponse, Measurement, Configuration, OperatorNote)
+- [x] Evidence stored as immutable project assets (referenced from results, not embedded in DB)
 - [ ] Integrate `tpt-av-asset` for test media assets, cached screenshots, recordings, generated evidence, project asset management
 
 ## Phase 12 — Measurement Model (§19)
 
-- [ ] `Measurement` struct (name, value, unit, tolerance, source)
-- [ ] `MeasurementValue`, `Unit`, `Tolerance`, `MeasurementSource` types
-- [ ] Preserve raw values; no internal rounding before tolerance evaluation
+- [x] `Measurement` struct (name, value, unit, tolerance, source)
+- [x] `MeasurementValue`, `Unit`, `Tolerance`, `MeasurementSource` types
+- [x] Preserve raw values; no internal rounding before tolerance evaluation
 - [ ] Integrate `tpt-audio` (routing, level monitoring, channel testing, signal generation/monitoring)
 - [ ] Integrate `tpt-dsp` (frequency response, signal level, noise, THD, phase, latency, spectral analysis, test-tone analysis)
 - [ ] Integrate `tpt-cadence` where audio codec handling of test media is required
@@ -253,14 +258,15 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 20 — Reporting (§31–32)
 
-- [ ] `tpt-app-av-commissioning-report`
+- [x] `tpt-app-av-commissioning-report`
   - [ ] PDF output (cover page, project details, system summary, device inventory, topology, test summary, detailed results, defects, evidence, engineer sign-off, software/profile version, date/time)
   - [ ] HTML output
-  - [ ] CSV output
-  - [ ] JSON output
-- [ ] Report distinguishes automated test / manual inspection / engineer acceptance (never imply automated measurement that didn't occur)
-- [ ] Electronic sign-off (engineer name, date, result incl. "PASS WITH ACCEPTED EXCEPTIONS", exception list)
-- [ ] Audit event recorded when a report is signed
+  - [x] CSV output
+  - [x] JSON output
+  - [x] Markdown output (used for the summary/headline formats)
+- [x] Report distinguishes automated test / manual inspection / engineer acceptance (summary counts by `TestStatus`, incl. Manual/Inconclusive — never implies measurements that didn't occur)
+- [x] Electronic sign-off (engineer name, date, result incl. "PASS WITH ACCEPTED EXCEPTIONS", exception list)
+- [ ] Audit event recorded when a report is signed (sign-off types exist; audit wiring is Phase 17)
 - [ ] Unit tests: report generation, golden reports (§46.1, §46.4)
 
 ## Phase 21 — Desktop UI (Tauri) (§28)
@@ -295,11 +301,12 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 24 — CLI (§34)
 
-- [ ] `tpt-app-av-commissioning-cli` (shares core engine with GUI)
-  - [ ] `validate --project <file> --suite <name>`
-  - [ ] `test --project <file> --room <name>`
-  - [ ] `report --project <file> --format <pdf|html|csv|json>`
-  - [ ] Automation-friendly exit codes/output for integrator deployment pipelines
+- [x] `tpt-app-av-commissioning-cli` (shares core engine with GUI)
+  - [x] `validate --project <file> [--suite <path>]` (suite = file or directory of DSL files)
+  - [ ] `test --project <file> --room <name>` (needs runner executor, Phase 7)
+  - [ ] `report --project <file> --format <pdf|html|csv|json>` (needs run data + report wiring)
+  - [x] Automation-friendly exit codes/output (`0` valid / `1` invalid / `2` usage) for integrator deployment pipelines
+  - [x] Integration tests (`crates/tpt-app-av-commissioning-cli/tests/cli.rs`; exit-code contract, `--version`/`--help`, valid/invalid project + suite fixtures)
 
 ## Phase 25 — Local API (§35)
 
@@ -331,20 +338,20 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 28 — Testkit, Mock Devices & Fault Injection (§46.2, §47)
 
-- [ ] `tpt-app-av-commissioning-testkit`
-  - [ ] `MockProjector`
-  - [ ] `MockDisplay`
-  - [ ] `MockMatrix`
-  - [ ] `MockDSP`
-  - [ ] `MockAudioEndpoint`
-  - [ ] `MockControlProcessor`
-  - [ ] Simulate: normal operation, latency, timeout, malformed response, incorrect state, intermittent failure, unreachable device
-- [ ] Fault injection scenarios (display offline, matrix output stuck, wrong EDID, audio channel missing, projector ignores power command, network latency, packet loss, incorrect feedback, device reboot)
-- [ ] Verify no malformed device response can crash the application (§54)
+- [x] `tpt-app-av-commissioning-testkit`
+  - [x] `MockProjector` (via `MockDevice::projector()` preset)
+  - [x] `MockDisplay` (via `MockDevice::display()` preset)
+  - [x] `MockMatrix` (via `MockDevice::matrix()` preset)
+  - [x] `MockDSP` (via `MockDevice::dsp()` preset)
+  - [x] `MockAudioEndpoint` (via `MockDevice::audio_endpoint()` preset)
+  - [x] `MockControlProcessor` (via `MockDevice::control_processor()` preset)
+  - [x] Simulate: normal operation, latency, timeout, malformed response, incorrect state, intermittent failure, unreachable device
+- [x] Fault injection scenarios (display offline, matrix output stuck, wrong EDID, audio channel missing, projector ignores power command, network latency, packet loss, incorrect feedback, device reboot) — `Fault` enum + workflow-state faults
+- [ ] Verify no malformed device response can crash the application (§54) — mocks return errors safely; full fuzz pass + HIL validation pending
 
 ## Phase 29 — Testing Strategy (§46)
 
-- [ ] Unit tests: device/endpoint models, topology, test definitions, DSL parsing, tolerance logic, result aggregation, report generation
+- [x] Unit tests: device/endpoint models, topology, test definitions, DSL parsing, tolerance logic, result aggregation, report generation
 - [ ] Integration tests against mock networks (e.g. Mock PC → Mock Matrix → Mock Scaler → Mock Display)
 - [ ] Golden reports (project + suite + mock device state → stable expected report)
 - [ ] Hardware-in-the-loop lab (small real-device set) — validate protocol implementations, drivers, timing, state restoration, firmware variations (ongoing/eventual, §46.5)
