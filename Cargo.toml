@@ -1,0 +1,46 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/tpt-app-av-commissioning-core",
+    "crates/tpt-app-av-commissioning-model",
+    "crates/tpt-app-av-commissioning-device",
+    "crates/tpt-app-av-commissioning-driver",
+    "crates/tpt-app-av-commissioning-test",
+    "crates/tpt-app-av-commissioning-runner",
+    "crates/tpt-app-av-commissioning-report",
+    "crates/tpt-app-av-commissioning-cli",
+    "crates/tpt-app-av-commissioning-tauri",
+    "crates/tpt-app-av-commissioning-testkit",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["TPT Solutions"]
+description = "Professional desktop application for commissioning, testing, diagnosing, documenting, and handing over audiovisual installations."
+repository = "https://github.com/tpt-solutions/tpt-app-av-commissioning"
+homepage = "https://github.com/tpt-solutions/tpt-app-av-commissioning"
+keywords = ["av", "commissioning", "testing", "audiovisual", "integrations"]
+categories = ["command-line-utilities", "development-tools::testing"]
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml_ng = "0.10"
+uuid = { version = "1.26", features = ["serde", "v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2.0"
+rusqlite = { version = "0.40", features = ["bundled"] }
+sha2 = "0.10"
+async-trait = "0.1"
+
+# tpt-app-av-commissioning-* internal crates
+tpt-app-av-commissioning-model = { path = "crates/tpt-app-av-commissioning-model", version = "0.1.0" }
+tpt-app-av-commissioning-device = { path = "crates/tpt-app-av-commissioning-device", version = "0.1.0" }
+tpt-app-av-commissioning-driver = { path = "crates/tpt-app-av-commissioning-driver", version = "0.1.0" }
+tpt-app-av-commissioning-test = { path = "crates/tpt-app-av-commissioning-test", version = "0.1.0" }
+tpt-app-av-commissioning-report = { path = "crates/tpt-app-av-commissioning-report", version = "0.1.0" }
+tpt-app-av-commissioning-core = { path = "crates/tpt-app-av-commissioning-core", version = "0.1.0" }
+tpt-app-av-commissioning-runner = { path = "crates/tpt-app-av-commissioning-runner", version = "0.1.0" }
+tpt-app-av-commissioning-testkit = { path = "crates/tpt-app-av-commissioning-testkit", version = "0.1.0" }

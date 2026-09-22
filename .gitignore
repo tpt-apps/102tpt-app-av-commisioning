@@ -1,7 +1,10 @@
 /target
 **/target
-Cargo.lock
 *.pdb
+
+# Local runtime data
+/tests/fixtures/output/
+*.sqlite-journal
 
 # IDE
 .vscode/

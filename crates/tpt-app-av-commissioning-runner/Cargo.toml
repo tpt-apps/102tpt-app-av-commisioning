@@ -1,0 +1,20 @@
+[package]
+name = "tpt-app-av-commissioning-runner"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+serde.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+tpt-app-av-commissioning-model.workspace = true
+tpt-app-av-commissioning-device.workspace = true
+tpt-app-av-commissioning-driver.workspace = true
+tpt-app-av-commissioning-test.workspace = true
