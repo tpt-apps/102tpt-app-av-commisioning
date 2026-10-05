@@ -265,3 +265,63 @@ fn phase9_unreachable_osc_device_fails_connectivity() {
     let t = ConnectivityTest::new("osc-conn", id(), ConnectivityProbe::Osc, drv);
     assert_eq!(t.execute().unwrap().status, TestStatus::Fail);
 }
+
+// --- device profiles ---------------------------------------------------------
+
+const SAMPLE_PROFILE: &str = include_str!("../../examples/osc-projector.yaml");
+
+#[test]
+fn sample_profile_loads_and_matches_its_device() {
+    use tpt_app_av_commissioning_profile::DeviceProfile;
+    let profile = DeviceProfile::from_yaml_str(SAMPLE_PROFILE).unwrap();
+    assert!(profile.matches(&DeviceIdentity {
+        manufacturer: Some("OscCo".into()),
+        model: Some("Beam-1".into()),
+        ..DeviceIdentity::default()
+    }));
+    assert!(!profile.matches(&DeviceIdentity {
+        manufacturer: Some("OscCo".into()),
+        model: Some("Beam-9".into()),
+        ..DeviceIdentity::default()
+    }));
+}
+
+#[test]
+fn profile_built_driver_commissions_a_device() {
+    use tpt_app_av_commissioning_profile::DeviceProfile;
+    let profile = DeviceProfile::from_yaml_str(SAMPLE_PROFILE).unwrap();
+    let dev = FakeDevice::start(&initial(), Behaviour::Normal);
+
+    // The profile's port is fixed; point the config at the fake's port.
+    let mut cfg = OscDriverConfig::from_profile(&profile, dev.addr.ip()).unwrap();
+    assert_eq!(cfg.target.port(), 9000);
+    cfg.target = dev.addr;
+    let d = OscDriver::new(cfg).unwrap();
+
+    assert_eq!(d.identity().model.as_deref(), Some("Beam-1"));
+    assert!(d.capabilities().can_power_on && d.capabilities().can_select_input);
+    let drv = kinds::share(d);
+    assert_eq!(
+        kinds::power_on("p", id(), drv.clone())
+            .execute()
+            .unwrap()
+            .status,
+        TestStatus::Pass
+    );
+    assert_eq!(
+        kinds::select_input("i", id(), drv, "hdmi3")
+            .execute()
+            .unwrap()
+            .status,
+        TestStatus::Pass
+    );
+}
+
+#[test]
+fn non_osc_profiles_are_refused() {
+    use tpt_app_av_commissioning_profile::DeviceProfile;
+    let tcp = SAMPLE_PROFILE.replace("type: osc", "type: tcp");
+    let profile = DeviceProfile::from_yaml_str(&tcp).unwrap();
+    let err = OscDriverConfig::from_profile(&profile, "10.0.0.5".parse().unwrap()).unwrap_err();
+    assert!(matches!(err, DriverError::Config(m) if m.contains("needs `type: osc`")));
+}

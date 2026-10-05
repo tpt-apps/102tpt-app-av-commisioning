@@ -13,6 +13,7 @@ categories.workspace = true
 tpt-av-control-osc.workspace = true
 tpt-app-av-commissioning-device.workspace = true
 tpt-app-av-commissioning-driver.workspace = true
+tpt-app-av-commissioning-profile.workspace = true
 
 [dev-dependencies]
 tpt-app-av-commissioning-model.workspace = true

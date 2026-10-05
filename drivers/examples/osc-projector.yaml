@@ -1,0 +1,20 @@
+# Example device profile (schema version 1): an OSC-controlled projector.
+# Applies only to devices reporting manufacturer "OscCo" and model "Beam-1".
+schema_version: 1
+device:
+  id: osc-projector
+  match:
+    manufacturer: OscCo
+    model: Beam-1
+  protocol:
+    type: osc
+    port: 9000
+    timeout_ms: 400
+  commands:
+    power_on:  { send: /power, args: [true] }
+    power_off: { send: /power, args: [false] }
+    set_input: { send: /input, args: ["$input"] }
+  state:
+    power:          { query: /power }
+    input:          { query: /input }
+    signal_present: { query: /signal }

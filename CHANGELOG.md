@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 5 — OSC driver (`drivers/osc`)
   - Config-driven `DeviceDriver` over UDP using the `tpt-av-control-osc` codec; explicit unicast targets only, bounded reads, wildcard-free addresses
 
+- Phase 5 — Device profiles
+  - New `tpt-app-av-commissioning-profile` crate: versioned YAML profile format with validation, executable-content guard, manufacturer/model matching
+  - `OscDriverConfig::from_profile`; sample `drivers/examples/osc-projector.yaml`
+
 ### Notes
 
 - TPT ecosystem crates are pinned as git dependencies by exact commit (see `[workspace.dependencies]`); bump revs deliberately.

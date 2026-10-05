@@ -61,31 +61,35 @@ Generic protocol drivers live under `drivers/`:
 
 ## Device profile format
 
-The versioned device profile format (`drivers/examples/`) lets integrators and vendors describe devices without writing code:
+Implemented in the `tpt-app-av-commissioning-profile` crate (§41). Profiles let integrators and vendors describe a device without writing code. A worked example lives in `drivers/examples/osc-projector.yaml`.
 
 ```yaml
-profile:
-  schema_version: 1
-  manufacturer: Example
-  models:
-    - Example-5000
-    - Example-5010
-protocol:
-  transport: tcp           # or osc, midi, serial, http, websocket, ...
-  port: 4352
-commands:
-  - id: power_on
-    match: { opcode: "0x01" }
-  - id: read_state
-    request: { opcode: "0x03" }
-    state_query: { field: "power", parser: "bool" }
+schema_version: 1
+device:
+  id: osc-projector
+  match:
+    manufacturer: OscCo
+    model: Beam-1              # or a list of models
+  protocol:
+    type: osc                  # osc | midi | tcp | udp | http | websocket | serial | snmp
+    port: 9000
+    timeout_ms: 400
+  commands:                    # power_on, power_off, power_cycle, set_input, freeze,
+    power_on:  { send: /power, args: [true] }     # generate_test_pattern, set_audio_volume,
+    set_input: { send: /input, args: ["$input"] } # set_audio_mute, set_route, read_edid, measure_latency
+  state:
+    power: { query: /power }
 ```
 
-Rules:
+Rules (enforced by `DeviceProfile::from_yaml_str`):
 
-1. **Versioned** — `schema_version` is mandatory and validated.
-2. **No arbitrary code execution** — profiles are declarative data; they cannot contain or reference executable code. Validation rejects executable content.
-3. Profiles must match on `manufacturer`/`model` before they may be applied to a device.
+1. **Versioned** — `schema_version` is mandatory; an unsupported version is reported as such (not as an unrelated parse error).
+2. **No arbitrary code execution** — profiles are declarative data. Custom YAML tags, unknown fields, unparseable input and oversized documents (256 KiB) are rejected. Command names come from a closed list.
+3. **Placeholders** (`"$input"`, `$pattern`, `$level_db`, `$muted`, `$frozen`, `$source`, `$destination`) are filled from the command being run, and each is valid in exactly one command.
+4. **Matching** — a profile applies only to a device whose reported manufacturer *and* model match (`DeviceProfile::matches`, trimmed and case-insensitive). A device reporting neither never matches.
+5. Bounded: ≤ 64 commands / state fields, ≤ 16 args per command, timeouts 1 ms–30 s, no credentials.
+
+A driver turns a profile plus a host into a configured driver; `OscDriverConfig::from_profile` does this for OSC and refuses profiles of any other protocol. Only OSC is implemented so far; other protocol types parse and validate but have no driver yet.
 
 ## Safety
 

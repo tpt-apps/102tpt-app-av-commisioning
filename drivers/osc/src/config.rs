@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use tpt_app_av_commissioning_device::{DeviceCapabilities, DeviceIdentity};
 use tpt_app_av_commissioning_driver::DriverError;
+use tpt_app_av_commissioning_profile::{DeviceProfile, Placeholder, ProfileArg, ProtocolKind};
 
 /// Longest reply timeout accepted.
 pub const MAX_TIMEOUT: Duration = Duration::from_secs(30);
@@ -110,6 +111,40 @@ impl OscDriverConfig {
         self
     }
 
+    /// Build a config from a device profile, for the device at `host`.
+    ///
+    /// The profile must be an `osc` profile (any other protocol is refused
+    /// rather than half-applied). The declared identity comes from the
+    /// profile's `match` section (the first listed model).
+    pub fn from_profile(profile: &DeviceProfile, host: IpAddr) -> Result<Self, DriverError> {
+        let spec = &profile.device;
+        if spec.protocol.kind != ProtocolKind::Osc {
+            return Err(DriverError::Config(format!(
+                "profile `{}` is a {:?} profile; the OSC driver needs `type: osc`",
+                spec.id, spec.protocol.kind
+            )));
+        }
+        let port = spec.protocol.port.ok_or_else(|| {
+            DriverError::Config(format!("profile `{}` has no `protocol.port`", spec.id))
+        })?;
+        let mut config = Self::new(SocketAddr::new(host, port))
+            .timeout(Duration::from_millis(spec.protocol.timeout_ms_or_default()))
+            .identity(DeviceIdentity {
+                manufacturer: Some(spec.matcher.manufacturer.clone()),
+                model: spec.matcher.model.as_slice().first().cloned(),
+                ..DeviceIdentity::default()
+            });
+        for (name, cmd) in &spec.commands {
+            let args = cmd.args.iter().map(binding_arg).collect();
+            config = config.bind(name.clone(), Binding::new(cmd.send.clone(), args));
+        }
+        for (field, q) in &spec.state {
+            config = config.query(StateQuery::new(field.clone(), q.query.clone()));
+        }
+        config.validate()?;
+        Ok(config)
+    }
+
     /// Bind a command kind (see [`OscDriverConfig::commands`]) to a message.
     pub fn bind(mut self, command_kind: impl Into<String>, binding: Binding) -> Self {
         self.commands.insert(command_kind.into(), binding);
@@ -168,6 +203,26 @@ impl OscDriverConfig {
             can_read_edid: has("read_edid"),
             can_measure_latency: has("measure_latency"),
         }
+    }
+}
+
+fn binding_arg(arg: &ProfileArg) -> BindingArg {
+    if let Some(ph) = arg.placeholder() {
+        return match ph {
+            Placeholder::Input => BindingArg::Input,
+            Placeholder::Pattern => BindingArg::Pattern,
+            Placeholder::LevelDb => BindingArg::LevelDb,
+            Placeholder::Muted => BindingArg::Muted,
+            Placeholder::Frozen => BindingArg::Frozen,
+            Placeholder::Source => BindingArg::Source,
+            Placeholder::Destination => BindingArg::Destination,
+        };
+    }
+    match arg {
+        ProfileArg::Bool(v) => BindingArg::Bool(*v),
+        ProfileArg::Int(v) => BindingArg::Int(*v),
+        ProfileArg::Float(v) => BindingArg::Float(*v),
+        ProfileArg::Text(v) => BindingArg::Text(v.clone()),
     }
 }
 

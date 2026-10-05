@@ -832,6 +832,7 @@ dependencies = [
  "tpt-app-av-commissioning-device",
  "tpt-app-av-commissioning-driver",
  "tpt-app-av-commissioning-model",
+ "tpt-app-av-commissioning-profile",
  "tpt-app-av-commissioning-test",
  "tpt-av-control-osc",
 ]
@@ -844,6 +845,16 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "tpt-app-av-commissioning-profile"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_yaml_ng",
+ "thiserror",
+ "tpt-app-av-commissioning-device",
 ]
 
 [[package]]

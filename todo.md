@@ -127,8 +127,8 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
   - [ ] MIDI (`drivers/midi/`)
   - [ ] SNMP (where appropriate)
   - [ ] Serial
-- [ ] Versioned device profile format (`drivers/examples/`: match manufacturer/model, protocol config, commands, state query/parser)
-- [ ] Profile format validation (versioned, no arbitrary code execution)
+- [x] Versioned device profile format (`tpt-app-av-commissioning-profile`; sample in `drivers/examples/`: match manufacturer/model, protocol config, commands, state queries; text-protocol parsers still to come with the TCP/serial drivers)
+- [x] Profile format validation (versioned, no arbitrary code execution)
 
 ## Phase 6 — Device Discovery (§11)
 
