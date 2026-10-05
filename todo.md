@@ -110,7 +110,7 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
   - [x] `DeviceCapability` enum
   - [x] `DeviceCapabilities` struct (can_power_on, can_power_off, can_read_state, can_select_input, can_generate_test_pattern, can_read_signal_status, can_read_edid, can_measure_latency)
   - [x] Async driver support where protocol behaviour requires it (`AsyncDeviceDriver`)
-- [ ] Integrate `tpt-av-control` as device-control foundation (OSC/MIDI/MIDI 2.0/DMX/Art-Net/sACN/WebRTC/control surfaces) — pinned in the workspace; not yet used by a crate
+- [ ] Integrate `tpt-av-control` as device-control foundation (OSC/MIDI/MIDI 2.0/DMX/Art-Net/sACN/WebRTC/control surfaces) — pinned in the workspace; OSC is wired in (`drivers/osc`), MIDI/MIDI 2.0/DMX/Art-Net/sACN/WebRTC/surfaces are not yet
 - [ ] Contribute generic improvements back to `tpt-av-control`/`tpt-av-test` where applicable
 
 > Note: `DeviceCommand`/`DeviceState`/`DeviceCapability` implemented as typed enums/structs rather
@@ -123,7 +123,7 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
   - [ ] UDP
   - [ ] HTTP
   - [ ] WebSocket
-  - [ ] OSC (`drivers/osc/`)
+  - [x] OSC (`drivers/osc/`) — `tpt-app-av-commissioning-driver-osc`: command bindings + state queries as data, bounded UDP, built on the `tpt-av-control-osc` codec; tested end to end against a fake OSC device through the Phase 9 tests
   - [ ] MIDI (`drivers/midi/`)
   - [ ] SNMP (where appropriate)
   - [ ] Serial

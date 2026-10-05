@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `CommissioningTest::kind()` and DSL `kind:` pin/inference
   - Power-cycle tests require explicit confirmation; network tests are bounded and non-intrusive
 
+- Phase 5 — OSC driver (`drivers/osc`)
+  - Config-driven `DeviceDriver` over UDP using the `tpt-av-control-osc` codec; explicit unicast targets only, bounded reads, wildcard-free addresses
+
 ### Notes
 
 - TPT ecosystem crates are pinned as git dependencies by exact commit (see `[workspace.dependencies]`); bump revs deliberately.

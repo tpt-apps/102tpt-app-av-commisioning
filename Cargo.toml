@@ -11,6 +11,7 @@ members = [
     "crates/tpt-app-av-commissioning-cli",
     "crates/tpt-app-av-commissioning-tauri",
     "crates/tpt-app-av-commissioning-testkit",
+    "drivers/osc",
 ]
 
 [workspace.package]
@@ -44,46 +45,47 @@ tpt-app-av-commissioning-report = { path = "crates/tpt-app-av-commissioning-repo
 tpt-app-av-commissioning-core = { path = "crates/tpt-app-av-commissioning-core", version = "0.1.0" }
 tpt-app-av-commissioning-runner = { path = "crates/tpt-app-av-commissioning-runner", version = "0.1.0" }
 tpt-app-av-commissioning-testkit = { path = "crates/tpt-app-av-commissioning-testkit", version = "0.1.0" }
+tpt-app-av-commissioning-driver-osc = { path = "drivers/osc", version = "0.1.0" }
 
 # TPT ecosystem dependencies, pinned to exact commits (cargo-deny allows only
 # the tpt-solutions GitHub org as a git source). Bump a rev deliberately; not all
 # are used by a crate yet — later phases opt in with `<name>.workspace = true`.
 # tpt-av-control
-tpt-av-control-utils = { git = "https://github.com/tpt-solutions/tpt-av-control", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
-tpt-av-control-osc = { git = "https://github.com/tpt-solutions/tpt-av-control", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
-tpt-av-control-midi = { git = "https://github.com/tpt-solutions/tpt-av-control", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
-tpt-av-control-dmx = { git = "https://github.com/tpt-solutions/tpt-av-control", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
-tpt-av-control-surface = { git = "https://github.com/tpt-solutions/tpt-av-control", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
-tpt-av-control-webrtc = { git = "https://github.com/tpt-solutions/tpt-av-control", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
+tpt-av-control-utils = { git = "https://github.com/tpt-solutions/tpt-av-control", version = "0.1.0", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
+tpt-av-control-osc = { git = "https://github.com/tpt-solutions/tpt-av-control", version = "0.1.0", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
+tpt-av-control-midi = { git = "https://github.com/tpt-solutions/tpt-av-control", version = "0.1.0", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
+tpt-av-control-dmx = { git = "https://github.com/tpt-solutions/tpt-av-control", version = "0.1.0", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
+tpt-av-control-surface = { git = "https://github.com/tpt-solutions/tpt-av-control", version = "0.1.0", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
+tpt-av-control-webrtc = { git = "https://github.com/tpt-solutions/tpt-av-control", version = "0.1.0", rev = "f39fe4e3a1b9d3ec9d831de93708255e412a3687" }
 # tpt-av-asset
-tpt-av-asset-utils = { git = "https://github.com/tpt-solutions/tpt-av-asset", rev = "bb257b3afb3b911ab5f584c212c7603c3df1551d" }
-tpt-av-asset-db = { git = "https://github.com/tpt-solutions/tpt-av-asset", rev = "bb257b3afb3b911ab5f584c212c7603c3df1551d" }
-tpt-av-asset-cache = { git = "https://github.com/tpt-solutions/tpt-av-asset", rev = "bb257b3afb3b911ab5f584c212c7603c3df1551d" }
+tpt-av-asset-utils = { git = "https://github.com/tpt-solutions/tpt-av-asset", version = "0.1.0", rev = "bb257b3afb3b911ab5f584c212c7603c3df1551d" }
+tpt-av-asset-db = { git = "https://github.com/tpt-solutions/tpt-av-asset", version = "0.1.0", rev = "bb257b3afb3b911ab5f584c212c7603c3df1551d" }
+tpt-av-asset-cache = { git = "https://github.com/tpt-solutions/tpt-av-asset", version = "0.1.0", rev = "bb257b3afb3b911ab5f584c212c7603c3df1551d" }
 # tpt-audio
-tpt-av-audio-core = { git = "https://github.com/tpt-solutions/tpt-audio", rev = "7268ccbb350b0f5dc77f71906cbe6cc5d59e1af5" }
-tpt-av-audio-io = { git = "https://github.com/tpt-solutions/tpt-audio", rev = "7268ccbb350b0f5dc77f71906cbe6cc5d59e1af5" }
-tpt-av-audio-utils = { git = "https://github.com/tpt-solutions/tpt-audio", rev = "7268ccbb350b0f5dc77f71906cbe6cc5d59e1af5" }
+tpt-av-audio-core = { git = "https://github.com/tpt-solutions/tpt-audio", version = "0.1.0", rev = "7268ccbb350b0f5dc77f71906cbe6cc5d59e1af5" }
+tpt-av-audio-io = { git = "https://github.com/tpt-solutions/tpt-audio", version = "0.1.0", rev = "7268ccbb350b0f5dc77f71906cbe6cc5d59e1af5" }
+tpt-av-audio-utils = { git = "https://github.com/tpt-solutions/tpt-audio", version = "0.1.0", rev = "7268ccbb350b0f5dc77f71906cbe6cc5d59e1af5" }
 # tpt-dsp
-tpt-dsp-core = { git = "https://github.com/tpt-solutions/tpt-dsp", rev = "ebf36bd4340c50a02cfac65554c0d07e551d3fb6" }
-tpt-dsp-analysis = { git = "https://github.com/tpt-solutions/tpt-dsp", rev = "ebf36bd4340c50a02cfac65554c0d07e551d3fb6" }
-tpt-dsp-audio = { git = "https://github.com/tpt-solutions/tpt-dsp", rev = "ebf36bd4340c50a02cfac65554c0d07e551d3fb6" }
+tpt-dsp-core = { git = "https://github.com/tpt-solutions/tpt-dsp", version = "0.1.0", rev = "ebf36bd4340c50a02cfac65554c0d07e551d3fb6" }
+tpt-dsp-analysis = { git = "https://github.com/tpt-solutions/tpt-dsp", version = "0.1.0", rev = "ebf36bd4340c50a02cfac65554c0d07e551d3fb6" }
+tpt-dsp-audio = { git = "https://github.com/tpt-solutions/tpt-dsp", version = "0.1.0", rev = "ebf36bd4340c50a02cfac65554c0d07e551d3fb6" }
 # tpt-cadence
-tpt-av-cadence-core = { git = "https://github.com/tpt-solutions/tpt-cadence", rev = "95ff6bf9349641d4cecfc15a3bd191fa228b5617" }
-tpt-av-cadence-pcm = { git = "https://github.com/tpt-solutions/tpt-cadence", rev = "95ff6bf9349641d4cecfc15a3bd191fa228b5617" }
-tpt-av-cadence-wav = { git = "https://github.com/tpt-solutions/tpt-cadence", rev = "95ff6bf9349641d4cecfc15a3bd191fa228b5617" }
+tpt-av-cadence-core = { git = "https://github.com/tpt-solutions/tpt-cadence", version = "0.1.0", rev = "95ff6bf9349641d4cecfc15a3bd191fa228b5617" }
+tpt-av-cadence-pcm = { git = "https://github.com/tpt-solutions/tpt-cadence", version = "0.1.0", rev = "95ff6bf9349641d4cecfc15a3bd191fa228b5617" }
+tpt-av-cadence-wav = { git = "https://github.com/tpt-solutions/tpt-cadence", version = "0.1.0", rev = "95ff6bf9349641d4cecfc15a3bd191fa228b5617" }
 # tpt-av-ui
-tpt-av-ui-core = { git = "https://github.com/tpt-solutions/tpt-av-ui", rev = "205556b0c2da0545e6e8cfdaa9bb667d44583060" }
-tpt-av-ui-meter = { git = "https://github.com/tpt-solutions/tpt-av-ui", rev = "205556b0c2da0545e6e8cfdaa9bb667d44583060" }
-tpt-av-ui-waveform = { git = "https://github.com/tpt-solutions/tpt-av-ui", rev = "205556b0c2da0545e6e8cfdaa9bb667d44583060" }
-tpt-av-ui-node = { git = "https://github.com/tpt-solutions/tpt-av-ui", rev = "205556b0c2da0545e6e8cfdaa9bb667d44583060" }
-tpt-av-ui-timeline = { git = "https://github.com/tpt-solutions/tpt-av-ui", rev = "205556b0c2da0545e6e8cfdaa9bb667d44583060" }
+tpt-av-ui-core = { git = "https://github.com/tpt-solutions/tpt-av-ui", version = "0.1.0", rev = "205556b0c2da0545e6e8cfdaa9bb667d44583060" }
+tpt-av-ui-meter = { git = "https://github.com/tpt-solutions/tpt-av-ui", version = "0.1.0", rev = "205556b0c2da0545e6e8cfdaa9bb667d44583060" }
+tpt-av-ui-waveform = { git = "https://github.com/tpt-solutions/tpt-av-ui", version = "0.1.0", rev = "205556b0c2da0545e6e8cfdaa9bb667d44583060" }
+tpt-av-ui-node = { git = "https://github.com/tpt-solutions/tpt-av-ui", version = "0.1.0", rev = "205556b0c2da0545e6e8cfdaa9bb667d44583060" }
+tpt-av-ui-timeline = { git = "https://github.com/tpt-solutions/tpt-av-ui", version = "0.1.0", rev = "205556b0c2da0545e6e8cfdaa9bb667d44583060" }
 # tpt-av-sync
-tpt-av-sync-utils = { git = "https://github.com/tpt-solutions/tpt-av-sync", rev = "f5e0276ab97bde05e7c865f194920a30e9dd0f6a" }
-tpt-av-sync-crdt = { git = "https://github.com/tpt-solutions/tpt-av-sync", rev = "f5e0276ab97bde05e7c865f194920a30e9dd0f6a" }
-tpt-av-sync-playhead = { git = "https://github.com/tpt-solutions/tpt-av-sync", rev = "f5e0276ab97bde05e7c865f194920a30e9dd0f6a" }
+tpt-av-sync-utils = { git = "https://github.com/tpt-solutions/tpt-av-sync", version = "0.1.0", rev = "f5e0276ab97bde05e7c865f194920a30e9dd0f6a" }
+tpt-av-sync-crdt = { git = "https://github.com/tpt-solutions/tpt-av-sync", version = "0.1.0", rev = "f5e0276ab97bde05e7c865f194920a30e9dd0f6a" }
+tpt-av-sync-playhead = { git = "https://github.com/tpt-solutions/tpt-av-sync", version = "0.1.0", rev = "f5e0276ab97bde05e7c865f194920a30e9dd0f6a" }
 # tpt-av-test
-tpt-av-test-mock = { git = "https://github.com/tpt-solutions/tpt-av-test", rev = "4571941191129d70eab5a00c093fbd4928e262ae" }
-tpt-av-test-reference = { git = "https://github.com/tpt-solutions/tpt-av-test", rev = "4571941191129d70eab5a00c093fbd4928e262ae" }
+tpt-av-test-mock = { git = "https://github.com/tpt-solutions/tpt-av-test", version = "0.1.0", rev = "4571941191129d70eab5a00c093fbd4928e262ae" }
+tpt-av-test-reference = { git = "https://github.com/tpt-solutions/tpt-av-test", version = "0.1.0", rev = "4571941191129d70eab5a00c093fbd4928e262ae" }
 # tpt-kinetix
-tpt-kinetix-core = { git = "https://github.com/tpt-solutions/tpt-kinetix", rev = "dab64158b6760eb186d544e4e49a8a1d2f611ff0" }
-tpt-kinetix-demux = { git = "https://github.com/tpt-solutions/tpt-kinetix", rev = "dab64158b6760eb186d544e4e49a8a1d2f611ff0" }
+tpt-kinetix-core = { git = "https://github.com/tpt-solutions/tpt-kinetix", version = "0.1.0", rev = "dab64158b6760eb186d544e4e49a8a1d2f611ff0" }
+tpt-kinetix-demux = { git = "https://github.com/tpt-solutions/tpt-kinetix", version = "0.1.0", rev = "dab64158b6760eb186d544e4e49a8a1d2f611ff0" }
