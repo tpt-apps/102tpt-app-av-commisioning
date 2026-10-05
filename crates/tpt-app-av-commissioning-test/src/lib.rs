@@ -5,14 +5,22 @@
 //!
 //! Licensed under either of MIT OR Apache-2.0, at your option.
 
+pub mod check;
 pub mod definition;
+pub mod kinds;
+pub mod net;
 pub mod procedure;
 pub mod result;
 pub mod status;
 pub mod test_kind;
 
+pub use check::{evaluate, Check, Evaluation, Expectation};
 pub use definition::{CommissioningTest, ExecutionMode, TestError, TestId, TestRequirements};
+pub use kinds::{
+    share, CommandTest, ConnectivityProbe, ConnectivityTest, SharedDriver, StateCheckTest,
+};
+pub use net::{RequiredPortsTest, TcpReachableTest};
 pub use procedure::{ProcedureStep, TestProcedure};
 pub use result::TestResult;
 pub use status::TestStatus;
-pub use test_kind::{classify_field, requirements_for, TestKind};
+pub use test_kind::{classify_field, TestKind};

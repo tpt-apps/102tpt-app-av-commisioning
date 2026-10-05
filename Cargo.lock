@@ -759,6 +759,7 @@ dependencies = [
  "tpt-app-av-commissioning-device",
  "tpt-app-av-commissioning-driver",
  "tpt-app-av-commissioning-model",
+ "tpt-app-av-commissioning-testkit",
  "uuid",
 ]
 

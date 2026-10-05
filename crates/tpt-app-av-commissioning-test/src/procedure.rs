@@ -19,6 +19,7 @@ use serde_json::Value as JsonValue;
 use tpt_app_av_commissioning_model::DeviceId;
 
 use crate::definition::{ExecutionMode, TestId, TestRequirements};
+use crate::test_kind::{classify_field, TestKind};
 
 /// Errors raised while parsing or validating a procedure.
 #[derive(Debug, thiserror::Error)]
@@ -196,6 +197,10 @@ pub struct AssertStep {
 pub struct TestProcedure {
     pub id: TestId,
     pub name: String,
+    /// Pins the test's category (§13); when absent it is inferred from the
+    /// fields the steps measure and assert (see [`TestProcedure::kind`]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<TestKind>,
     #[serde(default = "default_mode")]
     pub mode: ExecutionMode,
     #[serde(default)]
@@ -277,6 +282,20 @@ impl TestProcedure {
             }
         }
         Ok(())
+    }
+
+    /// The test's category (§13): the pinned `kind:` if set, otherwise the
+    /// first category any measure `type` or assert `field` classifies to.
+    /// `None` when nothing classifies — never guessed.
+    pub fn kind(&self) -> Option<TestKind> {
+        if self.kind.is_some() {
+            return self.kind;
+        }
+        self.steps.iter().find_map(|step| match step {
+            ProcedureStep::Measure(m) => classify_field(&m.kind),
+            ProcedureStep::Assert(a) => classify_field(&a.field),
+            ProcedureStep::Command(_) | ProcedureStep::Wait(_) => None,
+        })
     }
 
     /// The [`TestRequirements`] implied by this procedure.
@@ -562,5 +581,48 @@ test:
         let proc = TestProcedure::from_yaml_str(yaml).unwrap();
         assert_eq!(proc.id, TestId::new("projector.signal-path"));
         proc.validate().unwrap();
+    }
+
+    #[test]
+    fn kind_is_pinned_or_inferred_never_guessed() {
+        let pinned = TestProcedure::from_yaml_str(
+            "test:
+  id: t
+  name: T
+  kind: connectivity
+  steps:
+    - assert:
+        field: resolution
+        equals: x
+",
+        )
+        .unwrap();
+        assert_eq!(pinned.kind(), Some(TestKind::Connectivity));
+
+        let inferred = TestProcedure::from_yaml_str(
+            "test:
+  id: t
+  name: T
+  steps:
+    - assert:
+        field: resolution
+        equals: x
+",
+        )
+        .unwrap();
+        assert_eq!(inferred.kind(), Some(TestKind::Video));
+
+        let unknown = TestProcedure::from_yaml_str(
+            "test:
+  id: t
+  name: T
+  steps:
+    - assert:
+        field: make
+        equals: x
+",
+        )
+        .unwrap();
+        assert_eq!(unknown.kind(), None);
     }
 }

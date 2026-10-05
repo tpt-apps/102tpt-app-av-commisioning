@@ -7,6 +7,7 @@ use tpt_app_av_commissioning_driver::DriverError;
 use tpt_app_av_commissioning_model::{DeviceId, TestSuiteId};
 
 use crate::result::TestResult;
+use crate::test_kind::TestKind;
 
 /// Identifies a test definition.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -141,6 +142,12 @@ pub trait CommissioningTest {
 
     /// The test suite this test belongs to, if any.
     fn suite(&self) -> Option<TestSuiteId> {
+        None
+    }
+
+    /// Which of the nine commissioning categories (§13) this test is in, if
+    /// categorised. Informational only: it never affects scheduling.
+    fn kind(&self) -> Option<TestKind> {
         None
     }
 

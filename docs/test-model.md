@@ -57,3 +57,23 @@ Declarative YAML test format: `id`, `name`, `steps` composed of `command` / `wai
 ## Measurements (§19)
 
 A `Measurement` has name, value, unit, tolerance, and source. Measurements preserve raw values — no internal rounding before tolerance evaluation.
+
+## Concrete test types (§13)
+
+`tpt-app-av-commissioning-test` ships ready-made tests for all nine kinds. Each reports its category through `CommissioningTest::kind()` (informational; scheduling never depends on it). DSL procedures carry the same category via an optional `kind:` pin, otherwise inferred from the fields they measure/assert (`TestProcedure::kind()`; unknown fields stay uncategorised).
+
+| Building block | Mutates? | Kinds |
+|---|---|---|
+| `ConnectivityTest` (driver `discover`) | no | connectivity (UDP/HTTP/OSC/MIDI/serial via the driver) |
+| `TcpReachableTest`, `RequiredPortsTest` (`net`) | no | connectivity, network |
+| `StateCheckTest` + `identity`, `power_state`, `expected_route`, `signal_present`, `video`, `audio`, `network`, `synchronization` | no | identity, power, input/output, video, audio, network, synchronisation |
+| `CommandTest` + `power_on`, `power_off`, `power_recovery`, `select_input`, `set_route`, `test_pattern_response`, `control_feedback` | yes (declares `mutate_devices`) | power, input/output, video, control |
+
+Semantics worth knowing:
+
+- **Feedback is independent.** `CommandTest` re-reads device state after the command instead of trusting the command response, so a device that acknowledges but doesn't act (e.g. a projector ignoring power) fails.
+- **Status precedence** (`check::evaluate`): a missed required expectation is `Fail`; otherwise a field the device did not report is `Inconclusive`; otherwise a missed `advisory` expectation is `Warning`; otherwise `Pass`. A test with no expectations is `Inconclusive` — it proves nothing.
+- **Driver errors:** unreachable/timeouts are a `Fail` finding only for connectivity tests; elsewhere they are returned as `Err` so the runner's retry rules apply. `UnsupportedOperation` is `Skipped` (not applicable), never a failure.
+- **Safety (§36):** power-cycle tests are `Blocked` until `.confirm()` is called and send nothing. Network tests take literal addresses only (no name resolution or ranges), bound every connect by a timeout (max 30 s), cap ports per test (64), and send no data after the handshake.
+- **State-field vocabulary.** Drivers expose readings under the names `classify_field` knows, e.g. `power`, `input`, `route`, `signal_present`, `resolution`, `frame_rate`, `colour_format`, `hdr_state`, `signal_lock`, `level`, `silence`, `polarity`, `phase`, `clipping`, `noise`, `channel_presence`, `ip_address`, `gateway`, `dns`, `latency_ms`, `packet_loss`, `link_state`, `av_offset`, `sync_offset`, `clock_drift`. Anything else can still be checked with a raw `Expectation`.
+

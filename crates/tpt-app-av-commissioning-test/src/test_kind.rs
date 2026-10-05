@@ -23,7 +23,7 @@
 //! * *Network* — IP, gateway, DNS, latency, packet loss, link state, required
 //!   ports, device reachability (§13.9).
 //!
-//! The kind is what section 31 uses to scatter results by categoryjj, and what
+//! The kind is what section 31 uses to scatter results by category, and what
 //! a suite file can pin with `kind: connectivity`. It never changes *whether*
 //! a test runs — locking and dependency rules operate on the generic
 //! [`TestRequirements`] a test declares.
@@ -107,21 +107,29 @@ pub fn classify_field(field: &str) -> Option<TestKind> {
     }
     Some(match f {
         // §13.1 connectivity
-        "tcp_reachable" | "udp_reachable" | "http_response" | "osc_response"
-        | "midi_present" | "serial_available" | "reachable" => TestKind::Connectivity,
+        "tcp_reachable" | "udp_reachable" | "http_response" | "osc_response" | "midi_present"
+        | "serial_available" | "reachable" => TestKind::Connectivity,
         // §13.2 identity
         "manufacturer" | "model" | "serial" | "firmware" | "expected_address"
         | "device_address" => TestKind::Identity,
         // §13.3 power
-        "power_state" | "power_on" | "power_off" | "power_feedback"
-        | "power_recovery" | "state_feedback" => TestKind::Power,
+        "power_state" | "power_on" | "power_off" | "power_feedback" | "power_recovery"
+        | "state_feedback" => TestKind::Power,
         // §13.4 input/output
         "input_selected" | "output_selected" | "signal_present" | "expected_route"
         | "selected_input" | "selected_output" => TestKind::InputOutput,
         // §13.5 video
-        "resolution" | "frame_rate" | "colour_format" | "colour_space" | "hdr_state"
-        | "signal_lock" | "signal_timing" | "black_level" | "test_pattern_response"
-        | "video_resolution" | "video_frame_rate" => TestKind::Video,
+        "resolution"
+        | "frame_rate"
+        | "colour_format"
+        | "colour_space"
+        | "hdr_state"
+        | "signal_lock"
+        | "signal_timing"
+        | "black_level"
+        | "test_pattern_response"
+        | "video_resolution"
+        | "video_frame_rate" => TestKind::Video,
         // §13.6 audio
         "channel_presence" | "routing" | "level" | "silence" | "frequency_response"
         | "polarity" | "phase" | "clipping" | "noise" | "audio_level" | "channel_map" => {
@@ -130,8 +138,12 @@ pub fn classify_field(field: &str) -> Option<TestKind> {
         // §13.7 control
         "command_feedback" | "control_response" | "state_after_command" => TestKind::Control,
         // §13.8 synchronisation
-        "audio_video_offset" | "av_offset" | "device_timing" | "clock_drift"
-        | "cross_device_offset" | "sync_offset" => TestKind::Synchronization,
+        "audio_video_offset"
+        | "av_offset"
+        | "device_timing"
+        | "clock_drift"
+        | "cross_device_offset"
+        | "sync_offset" => TestKind::Synchronization,
         // §13.9 network
         "ip_address" | "gateway" | "dns" | "latency" | "packet_loss" | "link_state"
         | "required_ports" | "mtu" => TestKind::Network,
@@ -198,8 +210,14 @@ mod tests {
     fn classification_covers_the_power_and_io_surface() {
         assert_eq!(classify_field("power_state"), Some(TestKind::Power));
         assert_eq!(classify_field("power_on"), Some(TestKind::Power));
-        assert_eq!(classify_field("selected_input"), Some(TestKind::InputOutput));
-        assert_eq!(classify_field("expected_route"), Some(TestKind::InputOutput));
+        assert_eq!(
+            classify_field("selected_input"),
+            Some(TestKind::InputOutput)
+        );
+        assert_eq!(
+            classify_field("expected_route"),
+            Some(TestKind::InputOutput)
+        );
     }
 
     #[test]
