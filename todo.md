@@ -55,7 +55,7 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
   - [x] `tests/fixtures/`
   - [x] `tests/golden/`
   - [x] `tests/mock/`
-- [ ] Note external dependency `tpt-kinetix` (`https://github.com/tpt-solutions/tpt-kinetix`) is not yet vendored locally — revisit integration once it exists/is cloned (§5.6, §55)
+- [x] External TPT dependencies (`tpt-kinetix`, `tpt-av-control`, `tpt-av-asset`, `tpt-audio`, `tpt-dsp`, `tpt-cadence`, `tpt-av-ui`, `tpt-av-sync`, `tpt-av-test`) are vendored as git dependencies pinned to exact commits in `[workspace.dependencies]`, allow-listed in `deny.toml`, and verified to resolve and compile together; crates opt in per phase (§5.6, §55)
 
 ## Phase 1 — Core Domain Model (§7)
 
@@ -110,7 +110,7 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
   - [x] `DeviceCapability` enum
   - [x] `DeviceCapabilities` struct (can_power_on, can_power_off, can_read_state, can_select_input, can_generate_test_pattern, can_read_signal_status, can_read_edid, can_measure_latency)
   - [x] Async driver support where protocol behaviour requires it (`AsyncDeviceDriver`)
-- [ ] Integrate `tpt-av-control` as device-control foundation (OSC/MIDI/MIDI 2.0/DMX/Art-Net/sACN/WebRTC/control surfaces) — external dependency, not yet vendored
+- [ ] Integrate `tpt-av-control` as device-control foundation (OSC/MIDI/MIDI 2.0/DMX/Art-Net/sACN/WebRTC/control surfaces) — pinned in the workspace; not yet used by a crate
 - [ ] Contribute generic improvements back to `tpt-av-control`/`tpt-av-test` where applicable
 
 > Note: `DeviceCommand`/`DeviceState`/`DeviceCapability` implemented as typed enums/structs rather
@@ -168,16 +168,16 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 9 — Test Types (§13)
 
-- [x] `TestKind` taxonomy enum (Connectivity, Identity, Power, InputOutput, Video, Audio, Control, Synchronization, Network — §13.1–13.9); categorization only, not yet wired to `TestDefinition`
-- [ ] Connectivity: TCP/UDP reachable, HTTP response, OSC response, MIDI device present, serial connection available
-- [ ] Device identity: manufacturer, model, serial, firmware, expected address
-- [ ] Power: power state, power on, power off, state feedback, power recovery
-- [ ] Input/output: select input, verify signal, verify output, verify expected route
-- [ ] Video: resolution, frame rate, colour format, HDR state, signal lock, timing, black level, test pattern response
-- [ ] Audio: channel presence, routing, level, silence, frequency response, polarity, phase, clipping, noise
-- [ ] Control: command → device → expected state → feedback verification
-- [ ] Synchronisation: audio/video offset, device timing, clock drift, multi-device sync
-- [ ] Network: IP, gateway, DNS, latency, packet loss, link state, required ports, device reachability (non-intrusive by default)
+- [x] `TestKind` taxonomy enum (Connectivity, Identity, Power, InputOutput, Video, Audio, Control, Synchronization, Network — §13.1–13.9); wired into `CommissioningTest::kind()` and the DSL (`kind:` pin or inferred from measured/asserted fields)
+- [x] Connectivity: TCP/UDP reachable, HTTP response, OSC response, MIDI device present, serial connection available — `TcpReachableTest` (real bounded TCP connect) + driver-backed `ConnectivityTest` (UDP/HTTP/OSC/MIDI/serial probes go through the driver; real protocol drivers are Phase 5)
+- [x] Device identity: manufacturer, model, serial, firmware, expected address
+- [x] Power: power state, power on, power off, state feedback, power recovery (power-cycle blocked until explicitly confirmed, §36)
+- [x] Input/output: select input, verify signal, verify output, verify expected route
+- [x] Video: resolution, frame rate, colour format, HDR state, signal lock, timing, black level, test pattern response (`VideoSpec` covers resolution/frame rate/colour/HDR/lock; timing and black level via raw `Expectation`s; pixel-level measurement is Phase 34)
+- [x] Audio: channel presence, routing, level, silence, frequency response, polarity, phase, clipping, noise (device-reported values via `AudioSpec`/`Expectation`; signal-analysis measurement of frequency response etc. awaits `tpt-audio`/`tpt-dsp`, Phase 12)
+- [x] Control: command → device → expected state → feedback verification
+- [x] Synchronisation: audio/video offset, device timing, clock drift, multi-device sync (device-reported; measured sync awaits `tpt-av-sync`, Phase 35)
+- [x] Network: IP, gateway, DNS, latency, packet loss, link state, required ports, device reachability (non-intrusive by default)
 
 ## Phase 10 — Manual & Semi-Automated Workflow (§15, §4.5)
 

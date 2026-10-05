@@ -19,7 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Scaffolded application crates under `crates/`
   - Scaffolded `drivers/`, `test-suites/`, and `tests/` directories
 
+- Phase 9 — Test types (§13)
+  - Expectation engine (`check`), concrete connectivity / identity / power / input-output / video / audio / control / synchronisation / network tests
+  - `CommissioningTest::kind()` and DSL `kind:` pin/inference
+  - Power-cycle tests require explicit confirmation; network tests are bounded and non-intrusive
+
 ### Notes
 
-- External dependency `tpt-kinetix` is not yet vendored locally; integration will be revisited once the repository exists/clones (§5.6, §55).
+- TPT ecosystem crates are pinned as git dependencies by exact commit (see `[workspace.dependencies]`); bump revs deliberately.
 - GitHub repository `tpt-solutions/tpt-app-av-commissioning` is not yet created/connected remotely.

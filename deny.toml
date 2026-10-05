@@ -16,18 +16,6 @@ allow = [
     "MPL-2.0",
     "OpenSSL",
 ]
-deny = [
-    "GPL-1.0",
-    "GPL-2.0",
-    "GPL-3.0",
-    "LGPL-2.0",
-    "LGPL-2.1",
-    "AGPL-1.0",
-    "AGPL-3.0",
-]
-copyleft = "deny"
-allow-osi-fsf-free = "neither"
-default = "deny"
 confidence-threshold = 0.8
 
 [licenses.private]
@@ -40,3 +28,14 @@ wildcards = "deny"
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
+allow-git = [
+    "https://github.com/tpt-solutions/tpt-av-control",
+    "https://github.com/tpt-solutions/tpt-av-asset",
+    "https://github.com/tpt-solutions/tpt-audio",
+    "https://github.com/tpt-solutions/tpt-dsp",
+    "https://github.com/tpt-solutions/tpt-cadence",
+    "https://github.com/tpt-solutions/tpt-av-ui",
+    "https://github.com/tpt-solutions/tpt-av-sync",
+    "https://github.com/tpt-solutions/tpt-av-test",
+    "https://github.com/tpt-solutions/tpt-kinetix",
+]
