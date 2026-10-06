@@ -1123,4 +1123,186 @@ device:
         assert_eq!(found[1], Ok(Placeholder::Destination));
         assert!(found[2].is_err());
     }
+
+    fn doc(protocol: &str, extra: &str) -> String {
+        format!(
+            "schema_version: 1\ndevice:\n  id: x\n  match: {{ manufacturer: A, model: B }}\n  protocol: {protocol}\n{extra}"
+        )
+    }
+
+    #[test]
+    fn serial_profiles_need_line_settings_and_no_port() {
+        let state = "  state:\n    p: { query: \"P?\" }\n";
+        assert!(DeviceProfile::from_yaml_str(&doc(
+            "{ type: serial, serial: { baud: 9600 } }",
+            state
+        ))
+        .is_ok());
+        for protocol in [
+            "{ type: serial }",
+            "{ type: serial, port: 5, serial: { baud: 9600 } }",
+            "{ type: serial, serial: { baud: 5 } }",
+            "{ type: serial, serial: { baud: 9600, data_bits: 9 } }",
+            "{ type: serial, serial: { baud: 9600, stop_bits: 3 } }",
+            "{ type: tcp, port: 1, serial: { baud: 9600 } }",
+        ] {
+            assert!(
+                matches!(err(&doc(protocol, state)), ProfileError::Validation(_)),
+                "{protocol}"
+            );
+        }
+    }
+
+    #[test]
+    fn network_protocols_require_a_port_where_there_is_no_default() {
+        let state = "  state:\n    p: { query: \"P?\" }\n";
+        for kind in ["osc", "tcp", "udp"] {
+            let d = doc(&format!("{{ type: {kind} }}"), state);
+            assert!(matches!(err(&d), ProfileError::Validation(_)), "{kind}");
+        }
+        // http / websocket / snmp default their port.
+        assert!(DeviceProfile::from_yaml_str(&doc("{ type: websocket }", state)).is_ok());
+        let ws_path = doc("{ type: websocket, path: /ws }", state);
+        assert!(DeviceProfile::from_yaml_str(&ws_path).is_ok());
+        let bad = doc("{ type: tcp, port: 1, path: /ws }", state);
+        assert!(matches!(err(&bad), ProfileError::Validation(_)));
+        let bad = doc("{ type: websocket, path: ws }", state);
+        assert!(matches!(err(&bad), ProfileError::Validation(_)));
+    }
+
+    #[test]
+    fn http_request_lines_are_validated() {
+        assert_eq!(
+            http_request_line("x", "POST /api/power").unwrap(),
+            ("POST", "/api/power")
+        );
+        for bad in [
+            "GET",
+            "TRACE /x",
+            "GET x",
+            "GET /a b",
+            "GET /a\nb",
+            "get /x",
+        ] {
+            assert!(http_request_line("x", bad).is_err(), "{bad:?}");
+        }
+    }
+
+    #[test]
+    fn http_profiles_enforce_get_queries_and_body_rules() {
+        let ok = doc(
+            "{ type: http }",
+            "  commands:\n    set_input: { send: \"PUT /in/$input\", body: '{\"n\":\"$input\"}' }\n  state:\n    p: { query: \"GET /s\", extract: /p }\n",
+        );
+        assert!(DeviceProfile::from_yaml_str(&ok).is_ok());
+        let post_state = ok.replace("GET /s", "POST /s");
+        assert!(matches!(err(&post_state), ProfileError::Validation(_)));
+        let bad_extract = ok.replace("extract: /p", "extract: p");
+        assert!(matches!(err(&bad_extract), ProfileError::Validation(_)));
+    }
+
+    #[test]
+    fn snmp_profiles_are_read_only_with_valid_oids() {
+        let ok = doc(
+            "{ type: snmp }",
+            "  state:\n    fw: { query: \"1.3.6.1.2.1.1.1.0\" }\n",
+        );
+        assert!(DeviceProfile::from_yaml_str(&ok).is_ok());
+        let bad_oid = ok.replace("1.3.6.1.2.1.1.1.0", "sysDescr.0");
+        assert!(matches!(err(&bad_oid), ProfileError::Validation(_)));
+        let with_cmd =
+            format!("{ok}  commands:\n    power_on: {{ send: \"1.3.6.1.2.1.1.5.0\" }}\n");
+        assert!(matches!(err(&with_cmd), ProfileError::Validation(_)));
+    }
+
+    #[test]
+    fn oids_parse_strictly() {
+        assert_eq!(parse_oid("1.3.6.1").unwrap(), vec![1, 3, 6, 1]);
+        assert_eq!(parse_oid(".1.3.6.1").unwrap(), vec![1, 3, 6, 1]);
+        for bad in ["", "1", "1.", "a.b", "3.1", "1.40", "1.3.-1"] {
+            assert!(parse_oid(bad).is_err(), "{bad:?}");
+        }
+        assert!(parse_oid(&vec!["1"; 65].join(".")).is_err());
+    }
+
+    #[test]
+    fn midi_grammar_is_strict() {
+        assert_eq!(
+            MidiMessage::parse("cc 1 7 127").unwrap(),
+            MidiMessage::ControlChange {
+                channel: 0,
+                controller: 7,
+                value: 127
+            }
+        );
+        assert_eq!(
+            MidiMessage::parse("note_on 16 60 100").unwrap(),
+            MidiMessage::NoteOn {
+                channel: 15,
+                note: 60,
+                velocity: 100
+            }
+        );
+        assert_eq!(
+            MidiMessage::parse("program 2 5").unwrap(),
+            MidiMessage::ProgramChange {
+                channel: 1,
+                program: 5
+            }
+        );
+        for bad in [
+            "",
+            "cc 0 7 1",
+            "cc 17 7 1",
+            "cc 1 128 1",
+            "cc 1 7 128",
+            "cc 1 7",
+            "cc 1 7 1 1",
+            "sysex f0 f7",
+            "cc a b c",
+            "cc 1 7 $level_db",
+        ] {
+            assert!(MidiMessage::parse(bad).is_err(), "{bad:?}");
+        }
+        assert_eq!(
+            MidiQuery::parse("cc 3 11").unwrap(),
+            MidiQuery::ControlChange {
+                channel: 2,
+                controller: 11
+            }
+        );
+        assert_eq!(
+            MidiQuery::parse("program 1").unwrap(),
+            MidiQuery::ProgramChange { channel: 0 }
+        );
+        assert!(MidiQuery::parse("note 1 2").is_err());
+        assert!(MidiQuery::parse("cc 1").is_err());
+    }
+
+    #[test]
+    fn terminator_bytes() {
+        assert_eq!(Terminator::Crlf.bytes(), b"\r\n");
+        assert_eq!(Terminator::Cr.bytes(), b"\r");
+        assert_eq!(Terminator::None.bytes(), b"");
+        assert_eq!(Terminator::Cr.end_byte(), b'\r');
+        assert_eq!(Terminator::Lf.end_byte(), b'\n');
+    }
+
+    #[test]
+    fn substitute_replaces_in_order_and_propagates_errors() {
+        let out = substitute("A $source B $destination", |p| {
+            Ok(match p {
+                Placeholder::Source => "in1".to_owned(),
+                _ => "out2".to_owned(),
+            })
+        })
+        .unwrap();
+        assert_eq!(out, "A in1 B out2");
+        assert!(substitute("$nope", |_| Ok(String::new())).is_err());
+        assert!(substitute("$input", |_| Err("no".into())).is_err());
+        assert_eq!(
+            substitute("no placeholders $5", |_| Ok(String::new())).unwrap(),
+            "no placeholders $5"
+        );
+    }
 }
