@@ -12,6 +12,7 @@ categories.workspace = true
 [dependencies]
 serde_json.workspace = true
 serialport.workspace = true
+snmp2.workspace = true
 tungstenite.workspace = true
 tpt-app-av-commissioning-device.workspace = true
 tpt-app-av-commissioning-driver.workspace = true
