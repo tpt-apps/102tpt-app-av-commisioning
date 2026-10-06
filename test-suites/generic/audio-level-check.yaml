@@ -1,0 +1,38 @@
+# Example semi-automated test procedure (§15 of spec.txt): software prepares
+# the test and captures measurements (steps), then an engineer confirms the
+# result against the checklist. The run reports `manual` status until the
+# engineer approves (the measured status then stands) or rejects (the test
+# fails).
+#
+#   cargo run -p tpt-app-av-commissioning-cli -- validate \
+#       --suite test-suites/generic/audio-level-check.yaml
+
+test:
+  id: pa.speech-level
+  name: "PA Speech Level Check"
+  mode: semi_automated
+  depends_on: [projector.signal-path]
+
+  steps:
+    - command:
+        device: dsp-01
+        action: select_input
+        args:
+          input: mic-1
+
+    - wait:
+        milliseconds: 1000
+
+    - measure:
+        type: audio_level
+        device: dsp-01
+
+    - assert:
+        field: level
+        equals: -18
+
+  checklist:
+    - id: level
+      label: "Measured speech level reads correct at the listening position"
+    - id: clarity
+      label: "Programme audio is clear with no audible distortion"

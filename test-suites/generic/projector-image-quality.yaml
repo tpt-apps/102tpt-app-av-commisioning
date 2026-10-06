@@ -1,0 +1,25 @@
+# Example manual test procedure (§15 of spec.txt): the engineer is the
+# instrument. The runner executes nothing and touches no device — it hands
+# the checklist to the engineer, who answers each item with Pass / Fail / N/A
+# plus an optional note and evidence (photo, screenshot).
+#
+#   cargo run -p tpt-app-av-commissioning-cli -- validate \
+#       --suite test-suites/generic/projector-image-quality.yaml
+
+test:
+  id: projector.image-quality
+  name: "Projector Image Quality"
+  mode: manual
+  depends_on: [projector.signal-path]
+
+  checklist:
+    - id: focus
+      label: "Focus uniform across the entire screen"
+    - id: geometry
+      label: "Geometry undistorted (no keystone or bowing)"
+    - id: uniformity
+      label: "Brightness and colour uniform across the image"
+    - id: pixels
+      label: "No dead or stuck pixels visible"
+    - id: artefacts
+      label: "No visible artefacts (banding, noise, shimmer)"

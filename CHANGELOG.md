@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Phase 10 — Manual & semi-automated workflow (§15, §4.5)
+  - `ManualChecklist` model: Pass / Fail / N/A verdicts per item with note and
+    evidence; a failed item fails the checklist; confirming an incomplete
+    checklist is an error
+  - `ManualTest` and a `checklist()` hook on `CommissioningTest`; the runner
+    executes no software and touches no device for manual tests — the result
+    stays `Manual` (carrying the checklist) until the engineer confirms it
+  - Semi-automated path: the runner marks finished software runs as pending
+    confirmation with the measured status recorded; `TestResult::confirm`
+    approves (measured status stands) or rejects (test fails); automated
+    results are final and refuse confirmation
+  - Mode-aware DSL authoring: `checklist:` entries for `manual` and
+    `semi_automated` tests (composition per mode is validated); runnable
+    manual tests from procedures via `TestProcedure::manual_test`
+  - Example suites `test-suites/generic/projector-image-quality.yaml`
+    (manual) and `test-suites/generic/audio-level-check.yaml` (semi-automated)
+
+- Phase 7 — Runner executor wired and covered (§17)
+  - The executor module is now compiled and exported (`TestExecutor`,
+    `RunObserver`, `CancelToken`, `RunOutcome`); 14 executor tests cover
+    dependency blocking, parallel and serial execution, timeouts, retries,
+    cancellation (before and mid-run), rate limiting, device-lock
+    serialisation, and dry runs
+  - Live `test started` observer events at dispatch; synthesized
+    blocked/skipped results are reported to observers so persisted runs are
+    complete
+
+### Changed
+
+- `CommissioningTest` requires `Send + Sync` (tests are dispatched onto
+  worker threads)
+- `TestResult` gained optional serde-defaulted `checklist` and `pending`
+  fields; older persisted results still deserialize
+
 - Phase 0 — Project & repository setup
   - Cargo workspace with `resolver = "2"`, shared workspace metadata and dependencies
   - Dual licensing (`MIT OR Apache-2.0`) with `LICENSE-MIT` and `LICENSE-APACHE`

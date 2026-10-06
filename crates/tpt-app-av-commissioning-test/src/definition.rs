@@ -133,7 +133,11 @@ pub enum TestError {
 }
 
 /// A single commissioning test.
-pub trait CommissioningTest {
+///
+/// Tests are dispatched onto worker threads by the runner, so every test is
+/// `Send + Sync`: share device access through `Arc<Mutex<…>>` handles, never
+/// through `RefCell`/`Cell`.
+pub trait CommissioningTest: Send + Sync {
     /// Stable, human-readable id (e.g. `display-identity`).
     fn id(&self) -> &TestId;
 
@@ -153,6 +157,12 @@ pub trait CommissioningTest {
 
     /// What this test needs to run.
     fn requirements(&self) -> &TestRequirements;
+
+    /// The checklist the engineer works through when this test runs manually
+    /// (§15). `None` for automated and most semi-automated tests.
+    fn checklist(&self) -> Option<crate::manual::ManualChecklist> {
+        None
+    }
 
     /// Execute the test, producing a result.
     ///

@@ -19,6 +19,7 @@ use serde_json::Value as JsonValue;
 use tpt_app_av_commissioning_model::DeviceId;
 
 use crate::definition::{ExecutionMode, TestId, TestRequirements};
+use crate::manual::{ManualChecklist, ManualTest};
 use crate::test_kind::{classify_field, TestKind};
 
 /// Errors raised while parsing or validating a procedure.
@@ -179,6 +180,24 @@ pub struct AssertStep {
     pub equals: Option<JsonValue>,
 }
 
+/// One authored inspection item of a manual / semi-automated checklist (§15).
+///
+/// ```yaml
+/// checklist:
+///   - label: "Focus uniform across the screen"
+///     id: focus        # optional; positional `item-N` when absent
+///   - label: "Geometry undistorted"
+/// ```
+///
+/// Authoring states what to check; verdicts, notes and evidence are recorded
+/// at execution time (see [`crate::manual::ManualChecklist`]).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ChecklistEntry {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    pub label: String,
+}
+
 /// A declarative commissioning test (§16).
 ///
 /// The top-level YAML document is wrapped in a `test:` key:
@@ -193,6 +212,13 @@ pub struct AssertStep {
 ///
 /// Optional scheduling fields map directly onto [`TestRequirements`]:
 /// `depends_on`, `max_duration_ms`, `retries`.
+///
+/// The mode decides what a test is made of (§15):
+///
+/// * `automated` — `steps` only.
+/// * `semi_automated` — `steps` (software prepares and measures) **and** a
+///   `checklist` the engineer confirms against.
+/// * `manual` — `checklist` only; the engineer performs everything.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TestProcedure {
     pub id: TestId,
@@ -211,6 +237,10 @@ pub struct TestProcedure {
     pub retries: u32,
     #[serde(default)]
     pub steps: Vec<ProcedureStep>,
+    /// Inspection items the engineer works through (manual and
+    /// semi-automated tests).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub checklist: Vec<ChecklistEntry>,
 }
 
 fn default_mode() -> ExecutionMode {
@@ -245,11 +275,64 @@ impl TestProcedure {
         if self.name.trim().is_empty() {
             return Err(err("`name` must not be empty".to_owned()));
         }
-        if self.steps.is_empty() {
-            return Err(err("`steps` must contain at least one step".to_owned()));
-        }
         if self.max_duration_ms == Some(0) {
             return Err(err("`max_duration_ms` must be greater than zero".to_owned()));
+        }
+        // Mode-specific composition (§15): automated tests run steps; manual
+        // tests are a checklist; semi-automated tests are both.
+        match self.mode {
+            ExecutionMode::Automated if !self.checklist.is_empty() => {
+                return Err(err(
+                    "an automated test must not carry a `checklist`".to_owned()
+                ));
+            }
+            ExecutionMode::Manual if !self.steps.is_empty() => {
+                return Err(err(
+                    "a manual test must not contain `steps`; software-prepared \
+                     work belongs in a semi_automated test"
+                        .to_owned(),
+                ));
+            }
+            ExecutionMode::SemiAutomated if self.steps.is_empty() => {
+                return Err(err(
+                    "a semi_automated test needs `steps` for the software to \
+                     prepare and measure"
+                        .to_owned(),
+                ));
+            }
+            ExecutionMode::SemiAutomated if self.checklist.is_empty() => {
+                return Err(err(
+                    "a semi_automated test needs a `checklist` for the engineer \
+                     who confirms the result"
+                        .to_owned(),
+                ));
+            }
+            _ => {}
+        }
+        if self.steps.is_empty() && self.checklist.is_empty() {
+            return Err(err(
+                "a test needs `steps` (automated) or a `checklist` (manual)".to_owned(),
+            ));
+        }
+        let mut checklist_ids = std::collections::HashSet::new();
+        for (i, entry) in self.checklist.iter().enumerate() {
+            if entry.label.trim().is_empty() {
+                return Err(err(format!(
+                    "checklist item {}: `label` must not be empty",
+                    i + 1
+                )));
+            }
+            if let Some(id) = &entry.id {
+                if id.trim().is_empty() {
+                    return Err(err(format!(
+                        "checklist item {}: `id` must not be empty",
+                        i + 1
+                    )));
+                }
+                if !checklist_ids.insert(id.clone()) {
+                    return Err(err(format!("duplicate checklist item id `{id}`")));
+                }
+            }
         }
         for (i, step) in self.steps.iter().enumerate() {
             let at = |detail: String| err(format!("step {}: {detail}", i + 1));
@@ -296,6 +379,50 @@ impl TestProcedure {
             ProcedureStep::Assert(a) => classify_field(&a.field),
             ProcedureStep::Command(_) | ProcedureStep::Wait(_) => None,
         })
+    }
+
+    /// The authored checklist as an executable [`ManualChecklist`] model, or
+    /// `None` when the procedure carries no checklist.
+    pub fn checklist_model(&self) -> Option<ManualChecklist> {
+        if self.checklist.is_empty() {
+            return None;
+        }
+        let mut checklist = ManualChecklist::new(
+            self.name.clone(),
+            self.checklist.iter().map(|e| e.label.clone()),
+        );
+        for (item, entry) in checklist.items.iter_mut().zip(&self.checklist) {
+            if let Some(id) = &entry.id {
+                item.id = id.clone();
+            }
+        }
+        Some(checklist)
+    }
+
+    /// Wrap this procedure as a runnable manual test (§15).
+    ///
+    /// Errors for anything other than a validated `mode: manual` procedure:
+    /// automated and semi-automated procedures need the step interpreter
+    /// wired to drivers, which the runner host provides.
+    pub fn manual_test(&self) -> Result<ManualTest, ProcedureError> {
+        if self.mode != ExecutionMode::Manual {
+            return Err(ProcedureError::Validation(format!(
+                "`{}` is not a manual test (mode: {})",
+                self.id,
+                self.mode.as_str()
+            )));
+        }
+        let checklist = self.checklist_model().ok_or_else(|| {
+            ProcedureError::Validation("manual test has no `checklist`".to_owned())
+        })?;
+        let mut test = ManualTest::new(self.id.as_str(), self.name.clone(), checklist);
+        if let Some(kind) = self.kind() {
+            test = test.with_kind(kind);
+        }
+        if !self.depends_on.is_empty() {
+            test = test.depends_on(self.depends_on.iter().cloned());
+        }
+        Ok(test)
     }
 
     /// The [`TestRequirements`] implied by this procedure.
@@ -370,6 +497,8 @@ fn is_safe_tag(tag: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::definition::CommissioningTest;
+    use crate::status::TestStatus;
 
     const SPEC_SAMPLE: &str = r##"
 test:
@@ -455,12 +584,8 @@ test:
   depends_on: [boot.identity]
   max_duration_ms: 30000
   retries: 2
-  steps:
-    - wait:
-        milliseconds: 100
-    - assert:
-        field: result
-        equals: ok
+  checklist:
+    - label: "Panel shows the correct source"
 "##;
         let proc = TestProcedure::from_yaml_str(yaml).unwrap();
         let req = proc.requirements();
@@ -468,6 +593,152 @@ test:
         assert_eq!(req.depends_on, vec![TestId::new("boot.identity")]);
         assert_eq!(req.max_duration, Some(Duration::from_millis(30_000)));
         assert_eq!(req.retries, 2);
+    }
+
+    #[test]
+    fn parses_a_manual_checklist() {
+        let yaml = r##"
+test:
+  id: projector.image-quality
+  name: "Projector Image Quality"
+  mode: manual
+  checklist:
+    - id: focus
+      label: "Focus uniform across the screen"
+    - label: "Geometry undistorted"
+    - label: "No dead pixels"
+"##;
+        let proc = TestProcedure::from_yaml_str(yaml).unwrap();
+        assert_eq!(proc.mode, ExecutionMode::Manual);
+        assert_eq!(proc.checklist.len(), 3);
+
+        let checklist = proc.checklist_model().unwrap();
+        assert_eq!(checklist.title, "Projector Image Quality");
+        assert_eq!(checklist.items[0].id, "focus");
+        assert_eq!(checklist.items[1].id, "item-2");
+        assert_eq!(checklist.items[2].label, "No dead pixels");
+
+        let test = proc.manual_test().unwrap();
+        assert_eq!(test.id().as_str(), "projector.image-quality");
+        let result = test.execute().unwrap();
+        assert_eq!(result.status, TestStatus::Manual);
+        assert_eq!(result.checklist.as_ref().unwrap().items.len(), 3);
+    }
+
+    #[test]
+    fn manual_tests_must_not_carry_software_steps() {
+        let yaml = r##"
+test:
+  id: t1
+  name: "Mixed"
+  mode: manual
+  steps:
+    - wait:
+        milliseconds: 10
+  checklist:
+    - label: "Looks right"
+"##;
+        assert!(matches!(
+            TestProcedure::from_yaml_str(yaml),
+            Err(ProcedureError::Validation(_))
+        ));
+    }
+
+    #[test]
+    fn automated_tests_must_not_carry_a_checklist() {
+        let yaml = r##"
+test:
+  id: t1
+  name: "Mixed"
+  checklist:
+    - label: "Looks right"
+  steps:
+    - assert:
+        field: resolution
+        equals: "3840x2160"
+"##;
+        assert!(matches!(
+            TestProcedure::from_yaml_str(yaml),
+            Err(ProcedureError::Validation(_))
+        ));
+    }
+
+    #[test]
+    fn semi_automated_tests_need_steps_and_a_checklist() {
+        let without_checklist = r##"
+test:
+  id: t1
+  name: "Half prepared"
+  mode: semi_automated
+  steps:
+    - measure:
+        type: audio_level
+        device: dsp-01
+"##;
+        assert!(matches!(
+            TestProcedure::from_yaml_str(without_checklist),
+            Err(ProcedureError::Validation(_))
+        ));
+
+        let without_steps = r##"
+test:
+  id: t1
+  name: "Nothing prepared"
+  mode: semi_automated
+  checklist:
+    - label: "Level reads right"
+"##;
+        assert!(matches!(
+            TestProcedure::from_yaml_str(without_steps),
+            Err(ProcedureError::Validation(_))
+        ));
+    }
+
+    #[test]
+    fn duplicate_and_blank_checklist_ids_are_rejected() {
+        let duplicate = r##"
+test:
+  id: t1
+  name: "Dup"
+  mode: manual
+  checklist:
+    - id: a
+      label: "One"
+    - id: a
+      label: "Two"
+"##;
+        assert!(matches!(
+            TestProcedure::from_yaml_str(duplicate),
+            Err(ProcedureError::Validation(_))
+        ));
+
+        let blank = r##"
+test:
+  id: t1
+  name: "Blank"
+  mode: manual
+  checklist:
+    - label: "   "
+"##;
+        assert!(matches!(
+            TestProcedure::from_yaml_str(blank),
+            Err(ProcedureError::Validation(_))
+        ));
+    }
+
+    #[test]
+    fn manual_procedure_refuses_to_become_a_non_manual_test() {
+        let yaml = r##"
+test:
+  id: t1
+  name: "Auto"
+  steps:
+    - assert:
+        field: resolution
+        equals: "3840x2160"
+"##;
+        let proc = TestProcedure::from_yaml_str(yaml).unwrap();
+        assert!(proc.manual_test().is_err());
     }
 
     #[test]

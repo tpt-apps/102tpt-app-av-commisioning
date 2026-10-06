@@ -17,7 +17,7 @@ A test is identified by id and name, declares its requirements, and knows how to
 
 ## Result
 
-`TestResult` carries: test id, status, started/completed timestamps, evidence references, measurements, and human-readable messages.
+`TestResult` carries: test id, status, mode, started/completed timestamps, evidence references, measurements, and human-readable messages. Manual and semi-automated results additionally carry the checklist (with verdicts, notes and evidence) and, while a semi-automated run awaits the engineer, the recorded software status.
 
 ## Test types (§13)
 
@@ -35,16 +35,19 @@ A test is identified by id and name, declares its requirements, and knows how to
 
 ## Execution modes (§15)
 
-- `Automated` — software runs the test end to end.
-- `SemiAutomated` — software prepares/measures; an engineer confirms.
-- `Manual` — a first-class checklist (Pass / Fail / N/A / Note / Evidence) where the engineer is the instrument (e.g. projector image-quality inspection).
+- `Automated` — software runs the test end to end. Results are final; they cannot be "confirmed" (re-run instead).
+- `SemiAutomated` — software prepares the test and captures measurements; the runner marks the result pending confirmation (`status: Manual`, software status recorded) and the engineer approves or rejects it via `TestResult::confirm`.
+- `Manual` — the engineer is the instrument. The runner never executes software steps and touches no device: the result is produced with a `ManualChecklist` of items the engineer answers with Pass / Fail / N/A, each optionally carrying a note and evidence references. Confirming an incomplete checklist is an error; a failed item fails the test even when the engineer approves overall.
 
 ## Test procedures (§16)
 
-Declarative YAML test format: `id`, `name`, `steps` composed of `command` / `wait` / `measure` / `assert`.
+Declarative YAML test format: `id`, `name`, and — depending on `mode` — `steps` composed of `command` / `wait` / `measure` / `assert`, a `checklist` of `label` (optionally `id`) entries, or both:
 
-- Schema-validated before execution.
-- Arbitrary executable code in project/test files is explicitly disallowed.
+- `automated`: `steps` only.
+- `manual`: `checklist` only; authored instructions become the engineer's checklist (`TestProcedure::manual_test`).
+- `semi_automated`: `steps` (what software prepares/measures) and a `checklist` (what the engineer confirms).
+
+Validation is mode-aware (a manual test with software steps, or a semi-automated test without a checklist, is rejected before execution), and arbitrary executable code in project/test files is explicitly disallowed.
 
 ## Runner (§17, §18)
 

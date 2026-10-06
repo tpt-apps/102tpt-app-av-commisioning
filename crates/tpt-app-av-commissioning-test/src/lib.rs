@@ -8,6 +8,7 @@
 pub mod check;
 pub mod definition;
 pub mod kinds;
+pub mod manual;
 pub mod net;
 pub mod procedure;
 pub mod result;
@@ -19,8 +20,12 @@ pub use definition::{CommissioningTest, ExecutionMode, TestError, TestId, TestRe
 pub use kinds::{
     share, CommandTest, ConnectivityProbe, ConnectivityTest, SharedDriver, StateCheckTest,
 };
+pub use manual::{
+    ChecklistError, ChecklistItem, ChecklistVerdict, Confirmation, ConfirmationError,
+    ManualChecklist, ManualTest, PendingConfirmation,
+};
 pub use net::{RequiredPortsTest, TcpReachableTest};
-pub use procedure::{ProcedureStep, TestProcedure};
+pub use procedure::{ChecklistEntry, ProcedureStep, TestProcedure};
 pub use result::TestResult;
 pub use status::TestStatus;
 pub use test_kind::{classify_field, TestKind};

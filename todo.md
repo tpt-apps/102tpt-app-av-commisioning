@@ -160,7 +160,7 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
   - [x] `TestRequirements` type
 - [x] `tpt-app-av-commissioning-runner`
   - [x] Dependency-aware scheduling (blocked-not-failed propagation, §14) — `plan.rs`
-  - [x] Parallel execution (concurrency-slot worker pool, `execute.rs`) + 10 executor tests
+  - [x] Parallel execution (concurrency-slot worker pool, `execute.rs`) + 14 executor tests (executor now compiled, exported, and covered)
   - [x] Serial execution (concurrency = 1)
   - [x] Timeouts (per-test max_duration, timeout override; abandoned-thread guard)
   - [x] Retries (`effective_retries`; transient-error + timeout retry loops)
@@ -168,8 +168,8 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
   - [x] Rate limits (`min_start_interval` gap between scheduled starts)
   - [x] `DeviceLock` struct (device_id, owner) + `LockRegistry` — prevent concurrent device mutation races (`lock.rs`)
   - [x] Non-blocking `can_acquire` + dependency/active-mutation gates before dispatch
-  - [ ] Result persistence wiring (store persistence exists; executor hands results to `RunObserver`; app-layer persistence not yet wired)
-  - [ ] Signal-path tests declare devices they mutate (DSL `mutate_devices` exists; no executable-content risk — see §14)
+  - [ ] Result persistence wiring (store persistence exists; executor reports every scheduled result — including synthesized blocked/skipped — to `RunObserver`; app-layer persistence not yet wired)
+  - [x] Signal-path tests declare devices they mutate (DSL `mutate_devices` derived from command steps; the executor locks and gates them — no executable-content risk, see §14)
 
 ## Phase 8 — Test Procedure DSL (§16)
 
@@ -192,11 +192,11 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 10 — Manual & Semi-Automated Workflow (§15, §4.5)
 
-- [ ] `ExecutionMode` enum (Automated, SemiAutomated, Manual)
-- [ ] Automated test execution path
-- [ ] Semi-automated path (software prepares/measures, engineer confirms)
-- [ ] Manual test path (checklist: Pass / Fail / N/A / Note / Evidence) as first-class citizen
-- [ ] Manual test authoring support (step lists, e.g. projector image-quality inspection checklist)
+- [x] `ExecutionMode` enum (Automated, SemiAutomated, Manual)
+- [x] Automated test execution path (`TestExecutor` in the runner; automated results are final and cannot be "confirmed")
+- [x] Semi-automated path (software prepares/measures, engineer confirms — runner marks the result pending with the software status recorded; `TestResult::confirm` approves/rejects)
+- [x] Manual test path (checklist: Pass / Fail / N/A / Note / Evidence as `ManualChecklist`; `ManualTest`; the runner executes no software and touches no device for manual tests)
+- [x] Manual test authoring support (DSL `checklist:` items for `manual`/`semi_automated` modes, mode-aware validation; samples: `test-suites/generic/projector-image-quality.yaml`, `test-suites/generic/audio-level-check.yaml`)
 
 ## Phase 11 — Evidence System (§24)
 

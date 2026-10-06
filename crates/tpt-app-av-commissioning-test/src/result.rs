@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use tpt_app_av_commissioning_model::{EvidenceRef, Measurement};
 
 use crate::definition::{ExecutionMode, TestId};
+use crate::manual::{Confirmation, ConfirmationError, ManualChecklist, PendingConfirmation};
 use crate::status::TestStatus;
 
 /// The outcome of one test execution.
@@ -24,6 +25,14 @@ pub struct TestResult {
     pub messages: Vec<String>,
     /// Primary error message when the test failed infra-level.
     pub error: Option<String>,
+    /// The checklist a manual test asks the engineer to work through (§15),
+    /// with verdicts, notes and evidence as answered.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub checklist: Option<ManualChecklist>,
+    /// Set while a semi-automated result awaits the engineer's confirmation
+    /// (§15): the software part is done, the status is provisional.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pending: Option<PendingConfirmation>,
 }
 
 impl TestResult {
@@ -40,6 +49,8 @@ impl TestResult {
             measurements: Vec::new(),
             messages: Vec::new(),
             error: None,
+            checklist: None,
+            pending: None,
         }
     }
 
@@ -55,10 +66,86 @@ impl TestResult {
         self
     }
 
+    /// Attach a manual checklist.
+    pub fn with_checklist(mut self, checklist: ManualChecklist) -> Self {
+        self.checklist = Some(checklist);
+        self
+    }
+
+    /// Mark the result as awaiting the engineer's confirmation.
+    pub fn awaiting_confirmation(mut self, pending: PendingConfirmation) -> Self {
+        self.pending = Some(pending);
+        self
+    }
+
     /// Append a human-readable message.
     pub fn message(mut self, message: impl Into<String>) -> Self {
         self.messages.push(message.into());
         self
+    }
+
+    /// Whether this result still awaits an engineer (§15): it is pending
+    /// confirmation, or it is a manual test not yet worked through.
+    pub fn needs_confirmation(&self) -> bool {
+        self.pending.is_some()
+            || (self.mode == ExecutionMode::Manual && self.status == TestStatus::Manual)
+    }
+
+    /// Record the engineer's verdict on a manual or semi-automated result.
+    ///
+    /// * Semi-automated: approval restores the software part's status;
+    ///   rejection fails the test.
+    /// * Manual: the checklist (if present) must be complete; approval takes
+    ///   the checklist's overall status (any failed item fails the test),
+    ///   rejection fails it.
+    /// * Automated results are final — an error is returned; re-run instead.
+    pub fn confirm(
+        mut self,
+        confirmation: Confirmation,
+        engineer: &str,
+        note: Option<&str>,
+    ) -> Result<TestResult, ConfirmationError> {
+        if self.mode == ExecutionMode::Automated {
+            return Err(ConfirmationError::NotConfirmable(
+                "automated results are final; re-run the test instead".to_owned(),
+            ));
+        }
+
+        let checklist_status = match &self.checklist {
+            Some(checklist) => {
+                let outstanding = checklist.outstanding();
+                if !outstanding.is_empty() {
+                    return Err(ConfirmationError::NotConfirmable(format!(
+                        "checklist has unanswered items: {outstanding:?}"
+                    )));
+                }
+                checklist.overall()
+            }
+            None => None,
+        };
+
+        self.status = match (&self.pending, checklist_status, confirmation) {
+            // A rejected result always fails, whatever was measured.
+            (_, _, Confirmation::Reject) => TestStatus::Fail,
+            // Checklist failures stand even when the engineer approves.
+            (_, Some(TestStatus::Fail), Confirmation::Approve) => TestStatus::Fail,
+            (Some(pending), _, Confirmation::Approve) => {
+                pending.software_status.unwrap_or(TestStatus::Pass)
+            }
+            (None, Some(status), Confirmation::Approve) => status,
+            (None, None, Confirmation::Approve) => TestStatus::Pass,
+        };
+        self.pending = None;
+        let verb = match confirmation {
+            Confirmation::Approve => "approved",
+            Confirmation::Reject => "rejected",
+        };
+        self.messages.push(format!("{verb} by {engineer}"));
+        if let Some(note) = note {
+            self.messages.push(note.to_owned());
+        }
+        self.completed_at = Utc::now();
+        Ok(self)
     }
 }
 
@@ -81,5 +168,63 @@ mod tests {
         assert_eq!(r.messages, vec!["device reported on"]);
         assert_eq!(r.measurements.len(), 1);
         assert!(r.status.ran());
+        assert!(!r.needs_confirmation());
+    }
+
+    #[test]
+    fn semi_automated_approval_restores_software_status() {
+        let r = TestResult::new(
+            TestId::new("s1"),
+            TestStatus::Manual,
+            ExecutionMode::SemiAutomated,
+        )
+        .awaiting_confirmation(PendingConfirmation {
+            software_status: Some(TestStatus::Warning),
+            prompt: "Is the measured level acceptable?".into(),
+        })
+        .message("measured level -18 dBFS");
+        assert!(r.needs_confirmation());
+
+        let confirmed = r.confirm(Confirmation::Approve, "J. Doe", None).unwrap();
+        assert_eq!(confirmed.status, TestStatus::Warning);
+        assert!(!confirmed.needs_confirmation());
+        assert!(confirmed.messages.iter().any(|m| m.contains("J. Doe")));
+    }
+
+    #[test]
+    fn semi_automated_rejection_fails() {
+        let r = TestResult::new(
+            TestId::new("s2"),
+            TestStatus::Manual,
+            ExecutionMode::SemiAutomated,
+        )
+        .awaiting_confirmation(PendingConfirmation {
+            software_status: Some(TestStatus::Pass),
+            prompt: "Confirm".into(),
+        });
+        let confirmed = r
+            .confirm(Confirmation::Reject, "J. Doe", Some("too dim"))
+            .unwrap();
+        assert_eq!(confirmed.status, TestStatus::Fail);
+        assert!(confirmed.messages.iter().any(|m| m == "too dim"));
+    }
+
+    #[test]
+    fn bare_manual_result_confirms_by_verdict() {
+        let r = TestResult::new(TestId::new("m1"), TestStatus::Manual, ExecutionMode::Manual);
+        let confirmed = r.confirm(Confirmation::Approve, "J. Doe", None).unwrap();
+        assert_eq!(confirmed.status, TestStatus::Pass);
+    }
+
+    #[test]
+    fn results_round_trip_through_json_without_new_fields() {
+        // Older persisted results (no checklist / pending) still deserialize.
+        let legacy = r#"{"test_id":"t","status":"pass","mode":"automated",
+            "started_at":"2026-01-01T00:00:00Z","completed_at":"2026-01-01T00:00:01Z",
+            "evidence":[],"measurements":[],"messages":[],"error":null}"#;
+        let r: TestResult = serde_json::from_str(legacy).unwrap();
+        assert_eq!(r.status, TestStatus::Pass);
+        assert_eq!(r.checklist, None);
+        assert_eq!(r.pending, None);
     }
 }
