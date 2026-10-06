@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Phase 18/19 — Execution policy and restore-state (§36, §37)
+  - `ExecutionPolicy` project setting (power cycles denied by default); the
+    runner blocks (never fails) tests whose `MutationKind` the policy does
+    not permit, before dispatch; command tests classify their own mutation
+    kind (a power cycle makes a test disruptive), the DSL classifies from
+    command steps
+  - Restore-state mechanism: `TestRequirements::restores_state`,
+    `DeviceDriver::restore_state` (default `UnsupportedOperation`) with a
+    `CanRestoreState` capability, pre-test capture and best-effort
+    restoration in `CommandTest::restores_state()`, and the explicit §37
+    report — "Test passed, but device state restoration failed." with the
+    outcome downgraded to `Warning` — enforced by the runner even when a
+    test implementation forgets
+  - The mock device restores captured state exactly, for hardware-style
+    tests of the whole flow
+
 - Phase 14/15 — Baselines, regression and drift (§21–22)
   - `core::baseline`: fingerprinted `Baseline` snapshots (device identity
     incl. tracked configuration attributes, signal routes, per-test
@@ -58,6 +74,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `DeviceCapabilities` gained `can_restore_state` (in `full()`, not in
+  `read_only()`); profile-driven drivers declare it `false`
+- `TestRequirements` gained serde-defaulted `mutation` and `restores_state`
+  fields; `TestResult` gained a serde-defaulted `restoration_failed` flag
+- `MutationKind` lives in the model crate (re-exported by the test crate)
+  so the execution policy can gate on it
 - `SignalType` gained `as_str()` (matching `Transport`)
 - Store: defects and baselines carry a `payload` column (migrated on open
   via `PRAGMA table_info` probe); `save_baseline`/`save_defect` take typed

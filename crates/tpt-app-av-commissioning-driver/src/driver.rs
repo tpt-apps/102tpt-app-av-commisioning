@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 use tpt_app_av_commissioning_device::{
-    DeviceCapabilities, DeviceCommand, DeviceIdentity, DeviceResponse, DeviceState,
+    DeviceCapabilities, DeviceCommand, DeviceIdentity, DeviceResponse, DeviceState, PreState,
 };
 
 use crate::error::DriverError;
@@ -29,6 +29,17 @@ pub trait DeviceDriver {
 
     /// Execute a typed command against the device.
     fn execute(&mut self, command: DeviceCommand) -> Result<DeviceResponse, DriverError>;
+
+    /// Restore a state captured before a mutating test (§37 restore-state).
+    ///
+    /// Drivers that can map a captured [`PreState`] back onto their protocol
+    /// override this and declare `DeviceCapabilities::can_restore_state`;
+    /// the default is `UnsupportedOperation`, and a test that declared
+    /// restoration support reports the failure explicitly instead of
+    /// pretending the device was left as found.
+    fn restore_state(&mut self, _pre_state: &PreState) -> Result<DeviceResponse, DriverError> {
+        Err(DriverError::UnsupportedOperation)
+    }
 
     /// The set of commands this driver supports.
     fn capabilities(&self) -> DeviceCapabilities;

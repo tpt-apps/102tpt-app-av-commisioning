@@ -21,6 +21,7 @@ use tpt_app_av_commissioning_model::DeviceId;
 use crate::definition::{ExecutionMode, TestId, TestRequirements};
 use crate::manual::{ManualChecklist, ManualTest};
 use crate::test_kind::{classify_field, TestKind};
+use crate::MutationKind;
 
 /// Errors raised while parsing or validating a procedure.
 #[derive(Debug, thiserror::Error)]
@@ -447,14 +448,21 @@ impl TestProcedure {
         devices.dedup();
         mutate_devices.sort();
         mutate_devices.dedup();
+        let mutation = if mutate_devices.is_empty() {
+            MutationKind::None
+        } else {
+            MutationKind::Configuration
+        };
         TestRequirements {
             devices,
             mutate_devices,
+            mutation,
             mode: self.mode,
             depends_on: self.depends_on.clone(),
             max_duration: self.max_duration_ms.map(Duration::from_millis),
             retries: self.retries,
             requires_capabilities: Vec::new(),
+            restores_state: false,
         }
     }
 }

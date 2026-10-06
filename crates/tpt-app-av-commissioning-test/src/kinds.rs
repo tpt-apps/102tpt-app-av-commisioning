@@ -37,6 +37,7 @@ use crate::definition::{CommissioningTest, ExecutionMode, TestError, TestId, Tes
 use crate::result::TestResult;
 use crate::status::TestStatus;
 use crate::test_kind::TestKind;
+use crate::MutationKind;
 
 /// A driver shared between the tests that exercise one device.
 pub type SharedDriver = Arc<Mutex<dyn DeviceDriver + Send>>;
@@ -603,6 +604,7 @@ impl CommandTest {
     ) -> Self {
         let mut requirements = TestRequirements::reads([device.clone()]);
         requirements.mutate_devices.push(device);
+        requirements.mutation = MutationKind::Configuration;
         Self {
             id: TestId::new(id),
             name: name.into(),
@@ -616,9 +618,21 @@ impl CommandTest {
         }
     }
 
-    /// Append a command to send.
+    /// Append a command to send. The mutation kind (§36) is classified from
+    /// the commands: any power cycle makes the test disruptive.
     pub fn command(mut self, command: DeviceCommand) -> Self {
+        if matches!(command, DeviceCommand::PowerCycle) {
+            self.requirements.mutation = MutationKind::PowerCycle;
+        }
         self.commands.push(command);
+        self
+    }
+
+    /// Declare that this test restores the device state it changed (§37):
+    /// the pre-test state is captured, restored after the checks, and a
+    /// failed restoration is reported explicitly on the result.
+    pub fn restores_state(mut self) -> Self {
+        self.requirements.restores_state = true;
         self
     }
 
@@ -679,6 +693,24 @@ impl CommissioningTest for CommandTest {
         let mut drv = lock(&self.driver)?;
         let mut measurements = Vec::new();
         let mut messages = Vec::new();
+
+        // §37: capture the pre-test state before mutating, restore after.
+        let pre_state = if self.requirements.restores_state && !self.commands.is_empty() {
+            match drv.get_state() {
+                Ok(state) => Some(state),
+                Err(DriverError::UnsupportedOperation) => {
+                    messages.push(
+                        "state restoration declared but the driver cannot read state; nothing to restore"
+                            .to_owned(),
+                    );
+                    None
+                }
+                Err(e) => return Err(e.into()),
+            }
+        } else {
+            None
+        };
+
         for command in &self.commands {
             match drv.execute(command.clone()) {
                 Ok(resp) if resp.ok => {
@@ -692,6 +724,7 @@ impl CommissioningTest for CommandTest {
                     let mut r = result(&self.id, TestStatus::Fail, started)
                         .message(format!("device rejected {command:?}: {why}"));
                     r.measurements = measurements;
+                    r.messages = messages;
                     return Ok(r);
                 }
                 Err(DriverError::UnsupportedOperation) => {
@@ -716,6 +749,35 @@ impl CommissioningTest for CommandTest {
         let mut r = result(&self.id, eval.status, started);
         r.measurements = measurements;
         r.messages = messages;
+
+        // §37: best-effort restoration; a failure is explicit on the result
+        // ("Test passed, but device state restoration failed." with the
+        // status downgraded to Warning) — never silently ignored.
+        if let Some(pre_state) = pre_state {
+            match drv.restore_state(&pre_state) {
+                Ok(resp) if resp.ok => {
+                    r.messages.push("device state restored".to_owned());
+                }
+                Ok(resp) => {
+                    r.restoration_failed = true;
+                    r.messages.push(format!(
+                        "restoration not acknowledged: {}",
+                        resp.message.unwrap_or_else(|| "no detail".to_owned())
+                    ));
+                }
+                Err(DriverError::UnsupportedOperation) => {
+                    r.restoration_failed = true;
+                    r.messages.push(
+                        "state restoration declared but the driver cannot restore state".to_owned(),
+                    );
+                }
+                Err(e) => {
+                    r.restoration_failed = true;
+                    r.messages.push(format!("restoration failed: {e}"));
+                }
+            }
+            r.apply_restoration_failure();
+        }
         Ok(r)
     }
 }
@@ -937,6 +999,82 @@ mod tests {
         let t = power_on("pw1", dev("p1"), share(m));
         let r = t.execute().unwrap();
         assert_eq!(r.status, TestStatus::Fail);
+    }
+
+    #[test]
+    fn restoring_tests_put_the_device_back() {
+        let drv = share(MockDevice::projector());
+        let t = power_on("pw-r", dev("p1"), drv.clone()).restores_state();
+        assert!(t.requirements().restores_state);
+        let r = t.execute().unwrap();
+        assert_eq!(r.status, TestStatus::Pass);
+        assert!(!r.restoration_failed);
+        // The projector is back to its pre-test state: off.
+        assert_eq!(
+            drv.lock().unwrap().get_state().unwrap().get("power"),
+            Some(&tpt_app_av_commissioning_device::StateValue::Boolean(false))
+        );
+        assert!(r.messages.iter().any(|m| m.contains("state restored")));
+    }
+
+    #[test]
+    fn failed_restoration_is_reported_explicitly() {
+        // A driver that cannot map a captured state back onto its protocol.
+        struct NoRestore {
+            inner: MockDevice,
+        }
+        impl DeviceDriver for NoRestore {
+            fn identity(&self) -> DeviceIdentity {
+                self.inner.identity()
+            }
+            fn discover(&mut self) -> Result<DeviceState, DriverError> {
+                self.inner.discover()
+            }
+            fn get_state(&mut self) -> Result<DeviceState, DriverError> {
+                self.inner.get_state()
+            }
+            fn execute(
+                &mut self,
+                command: DeviceCommand,
+            ) -> Result<tpt_app_av_commissioning_device::DeviceResponse, DriverError> {
+                self.inner.execute(command)
+            }
+            fn capabilities(&self) -> tpt_app_av_commissioning_device::DeviceCapabilities {
+                self.inner.capabilities()
+            }
+        }
+
+        let t = power_on(
+            "pw-nr",
+            dev("p1"),
+            share(NoRestore {
+                inner: MockDevice::projector(),
+            }),
+        )
+        .restores_state();
+        let r = t.execute().unwrap();
+        // §37: the test passed, but the failure to restore is explicit and
+        // the outcome needs attention.
+        assert_eq!(r.status, TestStatus::Warning);
+        assert!(r.restoration_failed);
+        assert!(r
+            .messages
+            .iter()
+            .any(|m| m == "Test passed, but device state restoration failed."));
+    }
+
+    #[test]
+    fn mutation_kind_is_classified_from_commands() {
+        let d = dev("p1");
+        let read = power_state("ps", d.clone(), share(MockDevice::display()), true);
+        assert_eq!(read.requirements().mutation, MutationKind::None);
+        let configure = power_on("pw", d.clone(), share(MockDevice::projector()));
+        assert_eq!(
+            configure.requirements().mutation,
+            MutationKind::Configuration
+        );
+        let disruptive = power_recovery("pw2", d, share(MockDevice::projector()));
+        assert_eq!(disruptive.requirements().mutation, MutationKind::PowerCycle);
     }
 
     #[test]

@@ -14,6 +14,7 @@ pub enum DeviceCapability {
     CanReadSignalStatus,
     CanReadEdid,
     CanMeasureLatency,
+    CanRestoreState,
 }
 
 /// The set of capabilities a driver supports.
@@ -27,6 +28,7 @@ pub struct DeviceCapabilities {
     pub can_read_signal_status: bool,
     pub can_read_edid: bool,
     pub can_measure_latency: bool,
+    pub can_restore_state: bool,
 }
 
 impl DeviceCapabilities {
@@ -54,6 +56,7 @@ impl DeviceCapabilities {
             can_read_signal_status: true,
             can_read_edid: true,
             can_measure_latency: true,
+            can_restore_state: true,
         }
     }
 }
@@ -79,6 +82,7 @@ impl std::ops::BitOrAssign<DeviceCapability> for DeviceCapabilities {
             DeviceCapability::CanReadSignalStatus => &mut self.can_read_signal_status,
             DeviceCapability::CanReadEdid => &mut self.can_read_edid,
             DeviceCapability::CanMeasureLatency => &mut self.can_measure_latency,
+            DeviceCapability::CanRestoreState => &mut self.can_restore_state,
         };
         *flag = true;
     }

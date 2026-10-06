@@ -196,6 +196,7 @@ impl OscDriverConfig {
             can_read_signal_status: has_field("signal_present") || has_field("signal_lock"),
             can_read_edid: has("read_edid"),
             can_measure_latency: has("measure_latency"),
+            can_restore_state: false,
         }
     }
 }

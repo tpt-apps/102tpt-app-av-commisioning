@@ -306,6 +306,22 @@ impl DeviceDriver for MockDevice {
         })
     }
 
+    /// The mock "device" always restores exactly: the snapshot becomes the
+    /// state again (§37).
+    fn restore_state(&mut self, pre_state: &DeviceState) -> Result<DeviceResponse, DriverError> {
+        self.probe_fault()?;
+        if !self.capabilities.can_restore_state {
+            return Err(DriverError::UnsupportedOperation);
+        }
+        self.state = pre_state.clone();
+        Ok(DeviceResponse {
+            ok: true,
+            state: Some(self.state.clone()),
+            message: Some("state restored".to_owned()),
+            response_time_ms: Some(2),
+        })
+    }
+
     fn capabilities(&self) -> DeviceCapabilities {
         self.capabilities
     }

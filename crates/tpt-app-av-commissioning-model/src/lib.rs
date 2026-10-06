@@ -17,6 +17,7 @@ pub mod device;
 pub mod endpoint;
 pub mod evidence;
 pub mod measurement;
+pub mod policy;
 pub mod project;
 pub mod room;
 pub mod signal_path;
@@ -30,6 +31,7 @@ pub use endpoint::{Endpoint, EndpointKind};
 pub use evidence::{EvidenceId, EvidenceKind, EvidenceRef};
 pub use id::{ConnectionId, DeviceId, EndpointId, ProjectId, RoomId, TestSuiteId};
 pub use measurement::{Measurement, MeasurementSource, MeasurementValue, Tolerance, Unit};
+pub use policy::{ExecutionPolicy, MutationKind};
 pub use project::Project;
 pub use room::Room;
 pub use signal_path::{

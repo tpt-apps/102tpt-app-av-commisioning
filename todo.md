@@ -245,14 +245,14 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 18 — Security & Network Safety (§36, §38)
 
-- [ ] `execution_policy` project setting (allow_power_cycle, allow_configuration_changes, allow_network_changes)
-- [ ] Explicit interface/target selection for all network operations
-- [ ] Configurable timeouts and scan ranges
-- [ ] Confirmation required before reboot/power-cycle tests
+- [x] `execution_policy` project setting (allow_power_cycle — denied by default —, allow_configuration_changes, allow_network_changes); the runner blocks tests whose mutation kind is not permitted before dispatch
+- [x] Explicit interface/target selection for all network operations (discovery `DiscoveryConfig`)
+- [x] Configurable timeouts and scan ranges (discovery caps; per-test timeouts)
+- [x] Confirmation required before reboot/power-cycle tests (`CommandTest::confirm`; power-cycle tests additionally require the policy flag)
 - [ ] Command logging
-- [ ] Dry-run mode
-- [ ] No arbitrary command execution from project files or test DSL
-- [ ] Strict protocol parsing; bounded network reads
+- [x] Dry-run mode (`RunOptions::dry_run` — schedules and reports without touching devices)
+- [x] No arbitrary command execution from project files or test DSL (executable-content guards on manifest and DSL; typed commands only)
+- [x] Strict protocol parsing; bounded network reads (shared `driver::net` helpers, strict DNS/SSDP/OSC parsers)
 - [ ] Authentication support for device protocols
 - [ ] Encrypted credential storage; OS credential store integration where practical
 - [ ] Sensitive values excluded from reports by default
@@ -262,10 +262,10 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 19 — Restore-State Mechanism (§37)
 
-- [ ] Pre-test state capture for mutating tests
-- [ ] Post-test state restoration
-- [ ] Explicit "test passed, but device state restoration failed" reporting when restore fails
-- [ ] Tests declare whether state restoration is supported
+- [x] Pre-test state capture for mutating tests (`CommandTest::restores_state` captures state before the first command)
+- [x] Post-test state restoration (`DeviceDriver::restore_state` + `CanRestoreState` capability; the mock device restores exactly)
+- [x] Explicit "test passed, but device state restoration failed" reporting when restore fails (`TestResult::apply_restoration_failure`: message + Pass→Warning; enforced by the runner even if the test forgets)
+- [x] Tests declare whether state restoration is supported (`TestRequirements::restores_state`)
 
 ## Phase 20 — Reporting (§31–32)
 

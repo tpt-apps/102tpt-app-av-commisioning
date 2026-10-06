@@ -12,6 +12,8 @@ Projects carry an `execution_policy` with explicit allow flags, default-denied:
 
 Destructive operations (power cycles, reboots, configuration writes, network changes) require the corresponding flag **and** explicit operator confirmation.
 
+The runner enforces the policy at dispatch: a test whose mutation kind is not permitted is blocked (never failed) before it can touch a device, and dependents follow the normal blocked-not-failed rule.
+
 ## Network safety
 
 - All network operations require explicit interface/target selection — no implicit probing of every interface.

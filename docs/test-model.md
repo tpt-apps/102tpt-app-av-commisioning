@@ -49,6 +49,24 @@ Declarative YAML test format: `id`, `name`, and — depending on `mode` — `ste
 
 Validation is mode-aware (a manual test with software steps, or a semi-automated test without a checklist, is rejected before execution), and arbitrary executable code in project/test files is explicitly disallowed.
 
+## Restore-state (§37)
+
+Tests that modify state declare `restores_state` in their requirements (the
+`CommandTest` builder is `.restores_state()`). Such tests capture the
+device's pre-test state and restore it after the checks; if restoration
+fails — or the driver cannot restore at all — the result is explicit:
+"Test passed, but device state restoration failed." and a `Pass` outcome
+becomes `Warning`. The runner applies this contract even if a test
+implementation forgets.
+
+## Execution policy (§36)
+
+`TestRequirements.mutation` classifies what a test changes (`None`,
+`Configuration`, `Network`, `PowerCycle` — command tests classify
+themselves; a power cycle makes a test disruptive). The project's
+`execution_policy` gates dispatch: disallowed tests are blocked before
+they can touch a device.
+
 ## Runner (§17, §18)
 
 - Dependency-aware scheduling with blocked-not-failed propagation.

@@ -31,3 +31,4 @@ pub use procedure::{ChecklistEntry, ProcedureStep, TestProcedure};
 pub use result::TestResult;
 pub use status::TestStatus;
 pub use test_kind::{classify_field, TestKind};
+pub use tpt_app_av_commissioning_model::MutationKind;

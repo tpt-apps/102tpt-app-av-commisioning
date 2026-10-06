@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 use tpt_app_av_commissioning_driver::DriverError;
-use tpt_app_av_commissioning_model::{DeviceId, TestSuiteId};
+use tpt_app_av_commissioning_model::{DeviceId, MutationKind, TestSuiteId};
 
 use crate::result::TestResult;
 use crate::test_kind::TestKind;
@@ -59,6 +59,9 @@ pub struct TestRequirements {
     pub devices: Vec<DeviceId>,
     /// Devices the test mutates — these require a `DeviceLock` (§18).
     pub mutate_devices: Vec<DeviceId>,
+    /// What the test changes (execution-policy gating, §36).
+    #[serde(default)]
+    pub mutation: MutationKind,
     /// How the test executes.
     pub mode: ExecutionMode,
     /// Tests that must complete before this one may run.
@@ -69,6 +72,11 @@ pub struct TestRequirements {
     pub retries: u32,
     /// Driver capabilities the test relies on.
     pub requires_capabilities: Vec<DeviceCapabilityRef>,
+    /// Whether the test restores the device state it changed (§37): when
+    /// declared, a failed restoration is reported explicitly ("Test passed,
+    /// but device state restoration failed") instead of being lost.
+    #[serde(default)]
+    pub restores_state: bool,
 }
 
 /// A capability requirement, keyed to a device.
@@ -83,11 +91,13 @@ impl Default for TestRequirements {
         Self {
             devices: Vec::new(),
             mutate_devices: Vec::new(),
+            mutation: MutationKind::None,
             mode: ExecutionMode::Automated,
             depends_on: Vec::new(),
             max_duration: Some(Duration::from_secs(60)),
             retries: 0,
             requires_capabilities: Vec::new(),
+            restores_state: false,
         }
     }
 }

@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::id::{ConnectionId, DeviceId, ProjectId, RoomId, TestSuiteId};
+use crate::policy::ExecutionPolicy;
 
 /// The thing being commissioned.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,6 +16,10 @@ pub struct Project {
     pub devices: Vec<DeviceId>,
     pub connections: Vec<ConnectionId>,
     pub test_suites: Vec<TestSuiteId>,
+    /// What the software may do to this installation (§36). Power cycles
+    /// are denied by default.
+    #[serde(default)]
+    pub execution_policy: ExecutionPolicy,
 }
 
 impl Project {
@@ -29,6 +34,7 @@ impl Project {
             devices: Vec::new(),
             connections: Vec::new(),
             test_suites: Vec::new(),
+            execution_policy: ExecutionPolicy::default(),
         }
     }
 

@@ -14,6 +14,7 @@ trait DeviceDriver {
     fn discover(&self) -> Result<DeviceState>;
     fn get_state(&self) -> Result<DeviceState>;
     fn execute(&self, command: DeviceCommand) -> Result<DeviceResponse>;
+    fn restore_state(&self, pre_state: &PreState) -> Result<DeviceResponse> { UnsupportedOperation }
     fn capabilities(&self) -> DeviceCapabilities;
 }
 ```
@@ -38,6 +39,7 @@ trait DeviceDriver {
 | `can_read_signal_status` | Driver can report signal lock/format |
 | `can_read_edid` | Driver can read the EDID |
 | `can_measure_latency` | Driver can measure signal latency |
+| `can_restore_state` | Driver can restore a captured pre-test state (§37) |
 
 Drivers may communicate over OSC, MIDI, serial, TCP/UDP, HTTP, WebSocket, SNMP, vendor-proprietary protocols, or any combination. Where protocol behaviour requires it, drivers are async.
 

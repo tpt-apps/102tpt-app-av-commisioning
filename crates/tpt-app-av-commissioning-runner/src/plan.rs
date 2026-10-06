@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use tpt_app_av_commissioning_model::DeviceId;
+use tpt_app_av_commissioning_model::{DeviceId, ExecutionPolicy, MutationKind};
 use tpt_app_av_commissioning_test::{TestId, TestRequirements, TestStatus};
 
 /// Execution options for a test run (§17).
@@ -19,9 +19,19 @@ pub struct RunOptions {
     pub default_retries: u32,
     /// Minimum wall-clock delay between starting tests (rate limiting, §44).
     pub min_start_interval: Option<Duration>,
+    /// What the run may do to the installation (§36). Tests whose mutations
+    /// are not permitted are blocked before dispatch — never failed.
+    /// Defaults to permissive so the engine only ever narrows what a project
+    /// opted into.
+    #[serde(default = "permissive_policy")]
+    pub execution_policy: ExecutionPolicy,
     /// Apply the execution policy up front and report what would run without
     /// touching devices.
     pub dry_run: bool,
+}
+
+fn permissive_policy() -> ExecutionPolicy {
+    ExecutionPolicy::permissive()
 }
 
 impl Default for RunOptions {
@@ -31,6 +41,7 @@ impl Default for RunOptions {
             timeout: None,
             default_retries: 0,
             min_start_interval: None,
+            execution_policy: ExecutionPolicy::permissive(),
             dry_run: false,
         }
     }
@@ -43,6 +54,8 @@ pub struct PlannedTest {
     pub depends_on: Vec<TestId>,
     pub devices: Vec<DeviceId>,
     pub mutate_devices: Vec<DeviceId>,
+    /// What the test changes (execution-policy gating, §36).
+    pub mutation: MutationKind,
 }
 
 impl PlannedTest {
@@ -53,6 +66,7 @@ impl PlannedTest {
             depends_on: requirements.depends_on.clone(),
             devices: requirements.devices.clone(),
             mutate_devices: requirements.mutate_devices.clone(),
+            mutation: requirements.mutation,
         }
     }
 
@@ -197,6 +211,7 @@ mod tests {
             depends_on: deps.iter().map(|d| TestId::new(*d)).collect(),
             devices: Vec::new(),
             mutate_devices: Vec::new(),
+            mutation: tpt_app_av_commissioning_model::MutationKind::None,
         }
     }
 

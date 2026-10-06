@@ -247,6 +247,21 @@ impl<'a> TestExecutor<'a> {
                         continue;
                     }
 
+                    // Execution policy (§36): a test the project does not
+                    // permit is blocked before dispatch — it never runs and
+                    // never misreports as a failure.
+                    if !self.options.execution_policy.allows(planned.mutation) {
+                        let mode = self.tests[id].requirements().mode;
+                        let result = TestResult::new(id.clone(), TestStatus::Blocked, mode)
+                            .message(format!(
+                                "blocked by execution policy: {} changes are not allowed (§36)",
+                                planned.mutation.as_str()
+                            ));
+                        self.observer.on_test_completed(&result);
+                        results.insert(id.clone(), result);
+                        continue;
+                    }
+
                     let requirements = self.tests[id].requirements();
 
                     // Never read a device that a running test is mutating.
@@ -400,7 +415,13 @@ fn run_worker_job(
         release_locks(&locking, &locks, &owner);
 
         match attempt {
-            Attempt::Ok(result) => {
+            Attempt::Ok(mut result) => {
+                // §37 enforcement: a test that declared restoration support
+                // always carries the explicit restoration-failure report,
+                // even if the implementation forgot to apply it.
+                if test.requirements().restores_state {
+                    result.apply_restoration_failure();
+                }
                 let result = if mode == ExecutionMode::SemiAutomated {
                     // The software part is done; the engineer confirms the
                     // measured outcome (§15 semi-automated).
@@ -1061,6 +1082,103 @@ mod tests {
         );
         // Every test still ran exactly once.
         assert_eq!(observer.completed.lock().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn execution_policy_blocks_disallowed_mutations() {
+        let mut config_change = *ScriptedTest::passing("config-change");
+        config_change.requirements.mutation =
+            tpt_app_av_commissioning_model::MutationKind::Configuration;
+        config_change
+            .requirements
+            .mutate_devices
+            .push(tpt_app_av_commissioning_model::DeviceId::new("d1"));
+
+        let mut observer = Recorder::default();
+        let executor = TestExecutor::new(
+            RunOptions {
+                execution_policy: tpt_app_av_commissioning_model::ExecutionPolicy::read_only(),
+                ..RunOptions::default()
+            },
+            vec![boxed(config_change)],
+            &mut observer,
+        );
+        let outcome = executor.execute().unwrap();
+
+        assert_eq!(
+            statuses(&outcome),
+            vec![("config-change", TestStatus::Blocked)]
+        );
+        let result = outcome.result(&TestId::new("config-change")).unwrap();
+        assert!(result.messages[0].contains("execution policy"));
+        assert!(result.messages[0].contains("configuration"));
+    }
+
+    #[test]
+    fn permissive_policy_lets_mutating_tests_run() {
+        let mut config_change = *ScriptedTest::passing("config-change");
+        config_change.requirements.mutation =
+            tpt_app_av_commissioning_model::MutationKind::Configuration;
+        let mut observer = Recorder::default();
+        let executor = TestExecutor::new(
+            RunOptions::default(),
+            vec![boxed(config_change)],
+            &mut observer,
+        );
+        let outcome = executor.execute().unwrap();
+        assert_eq!(
+            statuses(&outcome),
+            vec![("config-change", TestStatus::Pass)]
+        );
+    }
+
+    #[test]
+    fn restoration_failures_are_enforced_on_declared_tests() {
+        /// A test that declares restoration support, passes, but reports a
+        /// failed restoration without applying the reporting contract — the
+        /// runner must apply it.
+        struct SloppyRestore {
+            id: TestId,
+        }
+        impl CommissioningTest for SloppyRestore {
+            fn id(&self) -> &TestId {
+                &self.id
+            }
+            fn name(&self) -> &str {
+                "sloppy"
+            }
+            fn requirements(&self) -> &TestRequirements {
+                static REQ: std::sync::OnceLock<TestRequirements> = std::sync::OnceLock::new();
+                REQ.get_or_init(|| TestRequirements {
+                    restores_state: true,
+                    ..TestRequirements::default()
+                })
+            }
+            fn execute(&self) -> Result<TestResult, TestError> {
+                let mut r =
+                    TestResult::new(self.id.clone(), TestStatus::Pass, ExecutionMode::Automated);
+                r.restoration_failed = true;
+                Ok(r)
+            }
+        }
+
+        let mut observer = Recorder::default();
+        let executor = TestExecutor::new(
+            RunOptions::default(),
+            vec![boxed(SloppyRestore {
+                id: TestId::new("sloppy"),
+            })],
+            &mut observer,
+        );
+        let outcome = executor.execute().unwrap();
+        let result = outcome.result(&TestId::new("sloppy")).unwrap();
+        // §37: explicit report, pass downgraded to warning.
+        assert_eq!(result.status, TestStatus::Warning);
+        assert!(result.restoration_failed);
+        assert!(result
+            .messages
+            .iter()
+            .any(|m| m == "Test passed, but device state restoration failed."));
     }
 
     #[test]

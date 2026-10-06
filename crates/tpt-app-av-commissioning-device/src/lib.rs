@@ -13,7 +13,7 @@ pub mod response;
 pub mod state;
 
 pub use capability::{DeviceCapabilities, DeviceCapability};
-pub use command::DeviceCommand;
+pub use command::{DeviceCommand, PreState};
 pub use identity::DeviceIdentity;
 pub use response::DeviceResponse;
 pub use state::{DeviceState, StateValue};

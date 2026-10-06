@@ -33,6 +33,10 @@ pub struct TestResult {
     /// (§15): the software part is done, the status is provisional.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pending: Option<PendingConfirmation>,
+    /// The test changed device state and could not restore it afterwards
+    /// (§37). Reporting is enforced by [`TestResult::apply_restoration_failure`].
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub restoration_failed: bool,
 }
 
 impl TestResult {
@@ -51,6 +55,7 @@ impl TestResult {
             error: None,
             checklist: None,
             pending: None,
+            restoration_failed: false,
         }
     }
 
@@ -76,6 +81,24 @@ impl TestResult {
     pub fn awaiting_confirmation(mut self, pending: PendingConfirmation) -> Self {
         self.pending = Some(pending);
         self
+    }
+
+    /// Record that state restoration failed after the test ran (§37) and
+    /// apply the explicit reporting contract: the message "Test passed, but
+    /// device state restoration failed." is added, and a `Pass` outcome
+    /// becomes `Warning` — it needs human attention, not celebration.
+    /// Failure outcomes keep their status; the message is still added.
+    pub fn apply_restoration_failure(&mut self) {
+        if !self.restoration_failed {
+            return;
+        }
+        let message = "Test passed, but device state restoration failed.";
+        if !self.messages.iter().any(|m| m == message) {
+            self.messages.push(message.to_owned());
+        }
+        if self.status == TestStatus::Pass {
+            self.status = TestStatus::Warning;
+        }
     }
 
     /// Append a human-readable message.
