@@ -867,7 +867,7 @@ impl MidiMessage {
 
 /// What a MIDI state query watches for: the latest `cc <ch> <controller>` or
 /// `program <ch>` the device sent.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MidiQuery {
     ControlChange { channel: u8, controller: u8 },
     ProgramChange { channel: u8 },

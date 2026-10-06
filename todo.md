@@ -110,7 +110,7 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
   - [x] `DeviceCapability` enum
   - [x] `DeviceCapabilities` struct (can_power_on, can_power_off, can_read_state, can_select_input, can_generate_test_pattern, can_read_signal_status, can_read_edid, can_measure_latency)
   - [x] Async driver support where protocol behaviour requires it (`AsyncDeviceDriver`)
-- [ ] Integrate `tpt-av-control` as device-control foundation (OSC/MIDI/MIDI 2.0/DMX/Art-Net/sACN/WebRTC/control surfaces) — pinned in the workspace; OSC is wired in (`drivers/osc`), MIDI/MIDI 2.0/DMX/Art-Net/sACN/WebRTC/surfaces are not yet
+- [ ] Integrate `tpt-av-control` as device-control foundation (OSC/MIDI/MIDI 2.0/DMX/Art-Net/sACN/WebRTC/control surfaces) — pinned in the workspace; OSC and MIDI 1.0 are wired in; MIDI 2.0/DMX/Art-Net/sACN/WebRTC/surfaces are not yet
 - [ ] Contribute generic improvements back to `tpt-av-control`/`tpt-av-test` where applicable
 
 > Note: `DeviceCommand`/`DeviceState`/`DeviceCapability` implemented as typed enums/structs rather
@@ -120,13 +120,13 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 - [ ] Generic drivers under `drivers/generic/`
   - [x] TCP (`drivers/generic`, `tpt-app-av-commissioning-driver-generic`: line-based text protocols, profile-driven, injection-safe; tested against a fake device through the Phase 9 tests)
-  - [ ] UDP
-  - [ ] HTTP
-  - [ ] WebSocket
+  - [x] UDP (`drivers/generic`, one message per datagram; shares the text core with TCP)
+  - [x] HTTP (`drivers/generic::http`: plain `http://` only, bounded, JSON Pointer extraction; no TLS yet)
+  - [x] WebSocket (`drivers/generic::websocket`: plain `ws://` only; JSON replies via `extract`)
   - [x] OSC (`drivers/osc/`) — `tpt-app-av-commissioning-driver-osc`: command bindings + state queries as data, bounded UDP, built on the `tpt-av-control-osc` codec; tested end to end against a fake OSC device through the Phase 9 tests
-  - [ ] MIDI (`drivers/midi/`)
-  - [ ] SNMP (where appropriate)
-  - [ ] Serial
+  - [x] MIDI (`drivers/midi/`, `tpt-app-av-commissioning-driver-midi`: fixed channel messages, state = what the device last sent; no SysEx/raw by design; MIDI 2.0/UMP not yet)
+  - [x] SNMP (`drivers/generic::snmp`: v1/v2c GET only, read-only by design; v3 not yet)
+  - [x] Serial (`drivers/generic::serial`: real-port paths only; hardware-in-the-loop validation outstanding)
 - [x] Versioned device profile format (`tpt-app-av-commissioning-profile`; sample in `drivers/examples/`: match manufacturer/model, protocol config, commands, state queries; built-in reply parsers: auto/bool/int/float/text/power_state)
 - [x] Profile format validation (versioned, no arbitrary code execution)
 

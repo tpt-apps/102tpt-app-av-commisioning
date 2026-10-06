@@ -53,11 +53,26 @@ Generic protocol drivers live under `drivers/`:
 
 - `generic/` — TCP, UDP, HTTP, WebSocket, serial, SNMP (where appropriate)
 - `osc/` — OSC
-- `midi/` — MIDI (incl. MIDI 2.0 groundwork)
+- `midi/` — MIDI 1.0 (MIDI 2.0/UMP not yet)
 - `network/` — network-focused protocols/discovery
 - `examples/` — worked driver examples and profile samples
 
 `tpt-av-control` is the device-control foundation for OSC/MIDI/MIDI 2.0/DMX/Art-Net/sACN/WebRTC/control surfaces; generic improvements should be contributed back upstream where applicable.
+
+### Driver matrix
+
+| `protocol.type` | Crate | Commands | State | Notes |
+|---|---|---|---|---|
+| `osc` | `drivers/osc` | OSC message (address + args) | query address, typed reply | UDP; no acknowledgement |
+| `tcp` | `drivers/generic` | text line, optional `ack` | query line + parser | one connection per operation |
+| `udp` | `drivers/generic` | one datagram, optional `ack` | query datagram + parser | `terminator: none` by default |
+| `serial` | `drivers/generic` | text line, optional `ack` | query line + parser | real port paths only (`COMn`, `/dev/...`) |
+| `websocket` | `drivers/generic` | text message, optional `ack` | query message + `extract` | `ws://` only |
+| `http` | `drivers/generic` | `METHOD /path` + JSON `body` | `GET /path` + `extract` | `http://` only; credentials supplied by the caller |
+| `snmp` | `drivers/generic` | none (read-only) | OID per field | v1/v2c GET; missing OIDs are not reported |
+| `midi` | `drivers/midi` | fixed channel message (`cc 1 20 127`) | last message the device sent | no SysEx or raw MIDI, by design |
+
+Cross-cutting rules for every driver: explicit unicast targets (no broadcast, multicast or unspecified), every wait bounded by the timeout, received data size-capped, malformed replies are errors never guesses, substituted values cannot inject a second command (line breaks refused; URL- and JSON-escaped for HTTP), `Arbitrary` commands are refused where raw input would be unsafe (HTTP, SNMP, MIDI), and credentials never live in profiles. A driver reports a field the device did not return as *unreported*, which tests surface as `Inconclusive`.
 
 ## Device profile format
 

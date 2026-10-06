@@ -35,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Line-based text-protocol driver configured from `type: tcp` profiles; reply parsers, ack lines, prefix stripping, injection-safe placeholder substitution
   - Shared network safety helpers (`driver::net`) now used by the OSC and TCP drivers
 
+- Phase 5 — Generic drivers
+  - UDP, serial, WebSocket, HTTP and read-only SNMP drivers (`drivers/generic`) and a MIDI driver (`drivers/midi`)
+  - Shared text-protocol core with injection-safe substitution, bounded reads and typed reply parsing
+  - Profile format: `terminator: none`, WebSocket `path`, serial line settings, HTTP `body`, JSON Pointer `extract`, MIDI and SNMP grammars
+
 ### Notes
 
 - TPT ecosystem crates are pinned as git dependencies by exact commit (see `[workspace.dependencies]`); bump revs deliberately.

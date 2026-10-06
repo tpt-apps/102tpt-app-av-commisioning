@@ -1,0 +1,20 @@
+[package]
+name = "tpt-app-av-commissioning-driver-midi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "MIDI device driver for TPT AV Commissioning, built on tpt-av-control-midi."
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+tpt-av-control-midi.workspace = true
+tpt-app-av-commissioning-device.workspace = true
+tpt-app-av-commissioning-driver.workspace = true
+tpt-app-av-commissioning-profile.workspace = true
+
+[dev-dependencies]
+tpt-app-av-commissioning-model.workspace = true
+tpt-app-av-commissioning-test.workspace = true
