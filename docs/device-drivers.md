@@ -108,6 +108,21 @@ Text protocols (`type: tcp`) add: `protocol.terminator` (`lf`/`crlf`/`cr`, defau
 
 A driver turns a profile plus a host into a configured driver; `OscDriverConfig::from_profile` does this for OSC and refuses profiles of any other protocol. OSC (`drivers/osc`) and TCP (`drivers/generic`) are implemented; other protocol types parse and validate but have no driver yet. TCP opens one connection per operation (stateless, tolerant of devices that drop idle connections).
 
+## Discovery
+
+Implemented in `drivers/network` (`tpt-app-av-commissioning-discovery`), configured by `DiscoveryConfig` in the driver SDK (§11, §36). Discovery finds *candidates*; adding one to a project is the engineer's decision, and `match_profiles` only pairs a candidate with a profile when the device itself reported a matching manufacturer and model.
+
+| Protocol | Scope | Behaviour |
+|---|---|---|
+| `tcp_probe` | host / CIDR | connect to each listed port and close; sends nothing; optional banner read (128 bytes, printable ASCII) |
+| `snmp` | host / CIDR | SNMPv2c GET of sysDescr, sysObjectID, sysName; community supplied by the caller |
+| `osc` | host / CIDR | one argument-less OSC query (default `/info`); any OSC reply counts |
+| `mdns` | multicast + interface | PTR query with the unicast-response bit; we never join the group or bind 5353 |
+| `ssdp` | multicast + interface | M-SEARCH; replies grouped by sender; `LOCATION` recorded, never fetched |
+| `midi` / `serial` / `audio` | local | enumerate this machine's ports and devices |
+
+Rules enforced by `DiscoveryConfig::validate` *before anything is sent*: at least one protocol and each must fit the scope; unicast scans cover at most `max_hosts` (default 256, hard limit 4096) IPv4 hosts; ranges outside private, link-local, CGNAT and loopback need `allow_public`; CIDR must be a network address (a typo is an error, not a silent widening); at most 16 ports per probe; timeouts ≤ 10 s; concurrency ≤ 64; multicast requires a named interface that exists on this machine. Everything a device sends back is bounded (datagram, header and record limits), parsed strictly, and reduced to printable text before it is stored. A failing mechanism is reported in `DiscoveryReport::errors` without discarding what the others found, and a pass can be cancelled.
+
 ## Safety
 
 - Strict protocol parsing with bounded network reads.

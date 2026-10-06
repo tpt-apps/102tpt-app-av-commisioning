@@ -12,6 +12,9 @@ pub mod driver;
 pub mod error;
 pub mod net;
 
-pub use discovery::{DeviceDiscovery, DiscoveryConfig};
+pub use discovery::{
+    DeviceDiscovery, DiscoveredDevice, DiscoveryConfig, DiscoveryProtocol, DiscoveryScope,
+    ScopeKind,
+};
 pub use driver::DeviceDriver;
 pub use error::DriverError;

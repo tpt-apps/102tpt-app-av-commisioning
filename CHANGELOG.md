@@ -40,6 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Shared text-protocol core with injection-safe substitution, bounded reads and typed reply parsing
   - Profile format: `terminator: none`, WebSocket `path`, serial line settings, HTTP `body`, JSON Pointer `extract`, MIDI and SNMP grammars
 
+- Phase 6 — Device discovery (`drivers/network`)
+  - TCP probe, mDNS, SSDP, SNMP, OSC, MIDI, serial and audio discovery behind one explicit, validated `DiscoveryConfig`
+  - Host-count/port/timeout caps, private-range default, mandatory interface for multicast, cancellation, per-mechanism error reporting
+
 ### Notes
 
 - TPT ecosystem crates are pinned as git dependencies by exact commit (see `[workspace.dependencies]`); bump revs deliberately.

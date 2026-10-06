@@ -132,13 +132,24 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 6 — Device Discovery (§11)
 
-- [ ] Discovery mechanisms (network scan, mDNS, SSDP, SNMP, vendor protocol discovery, OSC discovery, MIDI enumeration, local audio-device enumeration)
-- [ ] Explicit, user-controlled discovery configuration
-  - [ ] Network interface selection
-  - [ ] IP range selection
-  - [ ] Discovery protocol selection
-  - [ ] Timeout configuration
-- [ ] No aggressive/arbitrary scanning by default (§36 cross-reference)
+- [x] Discovery mechanisms (`drivers/network`, crate `tpt-app-av-commissioning-discovery`)
+  - [x] Network scan (TCP port probe, optional banner)
+  - [x] mDNS (one PTR query on the chosen interface, strict DNS parser)
+  - [x] SSDP (M-SEARCH on the chosen interface)
+  - [x] SNMP (sysDescr / sysObjectID / sysName)
+  - [x] OSC discovery (`/info`-style query)
+  - [x] MIDI enumeration, serial enumeration
+  - [x] Local audio-device enumeration (via `tpt-av-audio-io`)
+  - [ ] Vendor-protocol discovery (arrives with vendor drivers)
+- [x] Explicit, user-controlled discovery configuration (`DiscoveryConfig::validate` in the driver SDK)
+  - [x] Network interface selection (`list_interfaces`, `resolve_interface`; required for multicast)
+  - [x] IP range selection (single host or IPv4 CIDR, size-capped)
+  - [x] Discovery protocol selection (no protocols selected = nothing runs)
+  - [x] Timeout configuration (and concurrency, port-list and host-count caps)
+- [x] No aggressive/arbitrary scanning by default (§36 cross-reference): no default scope or protocol; public ranges need `allow_public`; at most 4096 hosts, 16 ports; invalid configs send nothing
+- [x] Device candidates matched to profiles by reported identity only (`match_profiles`)
+- [ ] mDNS replies that are multicast rather than unicast are not heard (documented trade-off: we never join the group)
+- [ ] Hardware-in-the-loop validation of multicast discovery on a real AV network
 
 ## Phase 7 — Test Model & Runner (§12, §17–18)
 
