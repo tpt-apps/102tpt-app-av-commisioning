@@ -45,7 +45,11 @@ pub fn check_timeout(timeout: Duration) -> Result<(), DriverError> {
 }
 
 /// Map a socket error onto the driver error model.
-pub fn map_io_error(error: &std::io::Error, target: SocketAddr, timeout: Duration) -> DriverError {
+pub fn map_io_error(
+    error: &std::io::Error,
+    target: impl std::fmt::Display,
+    timeout: Duration,
+) -> DriverError {
     match error.kind() {
         // A timed-out read is WouldBlock on Unix and TimedOut on Windows.
         ErrorKind::WouldBlock | ErrorKind::TimedOut => {

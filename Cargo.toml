@@ -37,6 +37,8 @@ thiserror = "2.0"
 rusqlite = { version = "0.40", features = ["bundled"] }
 sha2 = "0.10"
 async-trait = "0.1"
+serialport = { version = "4.10", default-features = false }
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 
 # tpt-app-av-commissioning-* internal crates
 tpt-app-av-commissioning-model = { path = "crates/tpt-app-av-commissioning-model", version = "0.1.0" }

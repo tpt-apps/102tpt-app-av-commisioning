@@ -162,6 +162,36 @@ pub struct ProtocolSpec {
     /// Line terminator for text protocols (default `crlf`).
     #[serde(default)]
     pub terminator: Option<Terminator>,
+    /// WebSocket request path (default `/`).
+    #[serde(default)]
+    pub path: Option<String>,
+    /// Serial line settings (required for, and only valid with, `serial`).
+    #[serde(default)]
+    pub serial: Option<SerialSpec>,
+}
+
+/// Serial line settings.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SerialSpec {
+    pub baud: u32,
+    /// 5, 6, 7 or 8 (default 8).
+    #[serde(default)]
+    pub data_bits: Option<u8>,
+    /// Default `none`.
+    #[serde(default)]
+    pub parity: Option<Parity>,
+    /// 1 or 2 (default 1).
+    #[serde(default)]
+    pub stop_bits: Option<u8>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Parity {
+    None,
+    Even,
+    Odd,
 }
 
 /// How lines end on a text protocol.
@@ -171,6 +201,9 @@ pub enum Terminator {
     Lf,
     Crlf,
     Cr,
+    /// No terminator: each message stands alone (datagram and message
+    /// transports such as UDP and WebSocket).
+    None,
 }
 
 impl Terminator {
@@ -180,6 +213,7 @@ impl Terminator {
             Terminator::Lf => b"\n",
             Terminator::Crlf => b"\r\n",
             Terminator::Cr => b"\r",
+            Terminator::None => b"",
         }
     }
 
@@ -188,6 +222,8 @@ impl Terminator {
         match self {
             Terminator::Lf | Terminator::Crlf => b'\n',
             Terminator::Cr => b'\r',
+            // Never used to split a stream; message transports are not split.
+            Terminator::None => b'\n',
         }
     }
 }
@@ -217,6 +253,10 @@ pub struct CommandSpec {
     /// absent the command is fire-and-forget.
     #[serde(default)]
     pub ack: Option<String>,
+    /// HTTP: the request body. Text placeholders go inside JSON quotes and
+    /// are JSON-escaped; numeric and boolean ones are inserted bare.
+    #[serde(default)]
+    pub body: Option<String>,
 }
 
 /// A state field's query.
@@ -233,6 +273,10 @@ pub struct StateSpec {
     /// (e.g. `POWR=`). A reply without it is a malformed response.
     #[serde(default)]
     pub strip_prefix: Option<String>,
+    /// JSON replies: a JSON Pointer (`/power/state`) selecting the value.
+    /// Strings then go through `parser`; numbers and booleans keep their type.
+    #[serde(default)]
+    pub extract: Option<String>,
 }
 
 /// Built-in reply parsers. Closed on purpose: a profile selects behaviour, it
@@ -483,6 +527,7 @@ impl DeviceProfile {
                 ));
             }
         }
+        validate_protocol(d)?;
         if d.commands.is_empty() && d.state.is_empty() {
             return bad("a profile needs at least one command or state query".to_owned());
         }
@@ -508,6 +553,35 @@ impl DeviceProfile {
             }
             if let Some(ack) = &cmd.ack {
                 check_text(&format!("commands.{name}.ack"), ack)?;
+            }
+            if let Some(body) = &cmd.body {
+                if d.protocol.kind != ProtocolKind::Http {
+                    return bad(format!("commands.{name}.body is only valid for `http`"));
+                }
+                if body.len() > 4096 {
+                    return bad(format!("commands.{name}.body is longer than 4096 bytes"));
+                }
+                for found in placeholders_in(body) {
+                    let ph = found.map_err(ProfileError::Validation)?;
+                    if ph.command() != name {
+                        return bad(format!(
+                            "commands.{name}: {ph:?} placeholder may only be used in `{}`",
+                            ph.command()
+                        ));
+                    }
+                }
+            }
+            if d.protocol.kind == ProtocolKind::Http {
+                http_request_line(&format!("commands.{name}.send"), &cmd.send)?;
+            }
+            if d.protocol.kind == ProtocolKind::Midi {
+                MidiMessage::parse(&cmd.send)
+                    .map_err(|e| ProfileError::Validation(format!("commands.{name}.send: {e}")))?;
+            }
+            if d.protocol.kind == ProtocolKind::Snmp {
+                return bad(format!(
+                    "commands.{name}: SNMP profiles are read-only; remove `commands`"
+                ));
             }
             if cmd.args.len() > MAX_ARGS {
                 return bad(format!("commands.{name}: at most {MAX_ARGS} args"));
@@ -538,6 +612,33 @@ impl DeviceProfile {
             if let Some(prefix) = &spec.strip_prefix {
                 check_text(&format!("state.{field}.strip_prefix"), prefix)?;
             }
+            if let Some(pointer) = &spec.extract {
+                if !pointer.starts_with('/') || pointer.len() > 256 {
+                    return bad(format!(
+                        "state.{field}.extract must be a JSON Pointer starting with '/'"
+                    ));
+                }
+            }
+            match d.protocol.kind {
+                ProtocolKind::Http => {
+                    let (method, _) =
+                        http_request_line(&format!("state.{field}.query"), &spec.query)?;
+                    if method != "GET" {
+                        return bad(format!("state.{field}.query must be a GET request"));
+                    }
+                }
+                ProtocolKind::Snmp => {
+                    parse_oid(&spec.query).map_err(|e| {
+                        ProfileError::Validation(format!("state.{field}.query: {e}"))
+                    })?;
+                }
+                ProtocolKind::Midi => {
+                    MidiQuery::parse(&spec.query).map_err(|e| {
+                        ProfileError::Validation(format!("state.{field}.query: {e}"))
+                    })?;
+                }
+                _ => {}
+            }
         }
         Ok(())
     }
@@ -561,6 +662,82 @@ impl DeviceProfile {
     }
 }
 
+fn validate_protocol(d: &DeviceSpec) -> Result<(), ProfileError> {
+    let bad = |m: String| Err(ProfileError::Validation(m));
+    let p = &d.protocol;
+    match p.kind {
+        ProtocolKind::Serial => {
+            let Some(serial) = &p.serial else {
+                return bad("`protocol.serial` is required for `serial`".to_owned());
+            };
+            if p.port.is_some() {
+                return bad("`protocol.port` does not apply to `serial`".to_owned());
+            }
+            if !(300..=4_000_000).contains(&serial.baud) {
+                return bad("`protocol.serial.baud` must be between 300 and 4000000".to_owned());
+            }
+            if !matches!(serial.data_bits.unwrap_or(8), 5..=8) {
+                return bad("`protocol.serial.data_bits` must be 5, 6, 7 or 8".to_owned());
+            }
+            if !matches!(serial.stop_bits.unwrap_or(1), 1 | 2) {
+                return bad("`protocol.serial.stop_bits` must be 1 or 2".to_owned());
+            }
+        }
+        _ => {
+            if p.serial.is_some() {
+                return bad("`protocol.serial` is only valid for `serial`".to_owned());
+            }
+        }
+    }
+    if p.kind == ProtocolKind::Midi && p.port.is_some() {
+        return bad("`protocol.port` does not apply to `midi`".to_owned());
+    }
+    if matches!(
+        p.kind,
+        ProtocolKind::Osc | ProtocolKind::Tcp | ProtocolKind::Udp
+    ) && p.port.is_none()
+    {
+        return bad(format!("`protocol.port` is required for `{:?}`", p.kind));
+    }
+    if let Some(path) = &p.path {
+        if p.kind != ProtocolKind::Websocket {
+            return bad("`protocol.path` is only valid for `websocket`".to_owned());
+        }
+        if !path.starts_with('/')
+            || path.len() > 256
+            || path.chars().any(|c| c.is_control() || c == ' ')
+        {
+            return bad("`protocol.path` must start with '/' and contain no spaces".to_owned());
+        }
+    }
+    Ok(())
+}
+
+/// Split and validate an HTTP `METHOD /path` line.
+pub fn http_request_line<'a>(
+    what: &str,
+    line: &'a str,
+) -> Result<(&'a str, &'a str), ProfileError> {
+    let bad = |m: String| Err(ProfileError::Validation(m));
+    let Some((method, path)) = line.split_once(' ') else {
+        return bad(format!("`{what}` must look like `GET /path`"));
+    };
+    if !matches!(method, "GET" | "POST" | "PUT" | "PATCH" | "DELETE") {
+        return bad(format!(
+            "`{what}`: method must be GET, POST, PUT, PATCH or DELETE"
+        ));
+    }
+    if !path.starts_with('/')
+        || path.len() > 256
+        || path.chars().any(|c| c.is_control() || c == ' ')
+    {
+        return bad(format!(
+            "`{what}`: path must start with '/' and contain no spaces"
+        ));
+    }
+    Ok((method, path))
+}
+
 fn check_text(what: &str, text: &str) -> Result<(), ProfileError> {
     if text.trim().is_empty() || text.len() > 256 || text.chars().any(char::is_control) {
         return Err(ProfileError::Validation(format!(
@@ -568,6 +745,158 @@ fn check_text(what: &str, text: &str) -> Result<(), ProfileError> {
         )));
     }
     Ok(())
+}
+
+/// Parse a dotted-decimal OID (`1.3.6.1.2.1.1.1.0`). At least two arcs, the
+/// first 0-2, at most 64 arcs.
+pub fn parse_oid(text: &str) -> Result<Vec<u32>, String> {
+    let arcs: Vec<u32> = text
+        .trim_start_matches('.')
+        .split('.')
+        .map(|a| {
+            a.parse::<u32>()
+                .map_err(|_| format!("{text:?} is not a dotted OID"))
+        })
+        .collect::<Result<_, _>>()?;
+    if arcs.len() < 2 || arcs.len() > 64 || arcs[0] > 2 || (arcs[0] < 2 && arcs[1] > 39) {
+        return Err(format!("{text:?} is not a valid OID"));
+    }
+    Ok(arcs)
+}
+
+/// A MIDI 1.0 channel message a profile can send, written
+/// `note_on <ch> <note> <velocity>`, `note_off …`, `cc <ch> <controller> <value>`
+/// or `program <ch> <program>`. Channels are 1-16; data bytes 0-127.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MidiMessage {
+    NoteOn {
+        channel: u8,
+        note: u8,
+        velocity: u8,
+    },
+    NoteOff {
+        channel: u8,
+        note: u8,
+        velocity: u8,
+    },
+    ControlChange {
+        channel: u8,
+        controller: u8,
+        value: u8,
+    },
+    ProgramChange {
+        channel: u8,
+        program: u8,
+    },
+}
+
+fn midi_args(parts: &[&str], n: usize) -> Result<Vec<u8>, String> {
+    if parts.len() != n {
+        return Err(format!("expected {n} numbers, found {}", parts.len()));
+    }
+    parts
+        .iter()
+        .map(|p| {
+            p.parse::<u8>()
+                .map_err(|_| format!("{p:?} is not a number 0-255"))
+        })
+        .collect()
+}
+
+fn midi_channel(ch: u8) -> Result<u8, String> {
+    if (1..=16).contains(&ch) {
+        Ok(ch - 1)
+    } else {
+        Err(format!("channel {ch} is not 1-16"))
+    }
+}
+
+fn midi_data(v: u8) -> Result<u8, String> {
+    if v <= 127 {
+        Ok(v)
+    } else {
+        Err(format!("{v} is not a 7-bit value (0-127)"))
+    }
+}
+
+impl MidiMessage {
+    /// Parse the textual form. The channel in the result is 0-based.
+    pub fn parse(text: &str) -> Result<Self, String> {
+        let parts: Vec<&str> = text.split_whitespace().collect();
+        let (kind, rest) = parts
+            .split_first()
+            .ok_or_else(|| "empty MIDI message".to_owned())?;
+        Ok(match *kind {
+            "note_on" | "note_off" => {
+                let a = midi_args(rest, 3)?;
+                let (channel, note, velocity) =
+                    (midi_channel(a[0])?, midi_data(a[1])?, midi_data(a[2])?);
+                if *kind == "note_on" {
+                    MidiMessage::NoteOn {
+                        channel,
+                        note,
+                        velocity,
+                    }
+                } else {
+                    MidiMessage::NoteOff {
+                        channel,
+                        note,
+                        velocity,
+                    }
+                }
+            }
+            "cc" => {
+                let a = midi_args(rest, 3)?;
+                MidiMessage::ControlChange {
+                    channel: midi_channel(a[0])?,
+                    controller: midi_data(a[1])?,
+                    value: midi_data(a[2])?,
+                }
+            }
+            "program" => {
+                let a = midi_args(rest, 2)?;
+                MidiMessage::ProgramChange {
+                    channel: midi_channel(a[0])?,
+                    program: midi_data(a[1])?,
+                }
+            }
+            other => return Err(format!("unknown MIDI message `{other}`")),
+        })
+    }
+}
+
+/// What a MIDI state query watches for: the latest `cc <ch> <controller>` or
+/// `program <ch>` the device sent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MidiQuery {
+    ControlChange { channel: u8, controller: u8 },
+    ProgramChange { channel: u8 },
+}
+
+impl MidiQuery {
+    /// Parse the textual form. The channel in the result is 0-based.
+    pub fn parse(text: &str) -> Result<Self, String> {
+        let parts: Vec<&str> = text.split_whitespace().collect();
+        let (kind, rest) = parts
+            .split_first()
+            .ok_or_else(|| "empty MIDI query".to_owned())?;
+        Ok(match *kind {
+            "cc" => {
+                let a = midi_args(rest, 2)?;
+                MidiQuery::ControlChange {
+                    channel: midi_channel(a[0])?,
+                    controller: midi_data(a[1])?,
+                }
+            }
+            "program" => {
+                let a = midi_args(rest, 1)?;
+                MidiQuery::ProgramChange {
+                    channel: midi_channel(a[0])?,
+                }
+            }
+            other => return Err(format!("unknown MIDI query `{other}`")),
+        })
+    }
 }
 
 /// Reject documents that smuggle executable content into the YAML. Mirrors the

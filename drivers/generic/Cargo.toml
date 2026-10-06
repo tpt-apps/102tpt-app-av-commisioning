@@ -10,6 +10,9 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
+serde_json.workspace = true
+serialport.workspace = true
+tungstenite.workspace = true
 tpt-app-av-commissioning-device.workspace = true
 tpt-app-av-commissioning-driver.workspace = true
 tpt-app-av-commissioning-profile.workspace = true

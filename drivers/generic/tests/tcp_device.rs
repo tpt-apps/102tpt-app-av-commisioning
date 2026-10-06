@@ -187,18 +187,16 @@ fn config(target: SocketAddr) -> TcpDriverConfig {
                 ack: Some("OK".into()),
             },
         )
-        .query(TextQuery {
-            field: "power".into(),
-            query: "POWR?".into(),
-            parser: ParserKind::PowerState,
-            strip_prefix: Some("POWR=".into()),
-        })
-        .query(TextQuery {
-            field: "input".into(),
-            query: "INPT?".into(),
-            parser: ParserKind::Text,
-            strip_prefix: Some("INPT=".into()),
-        })
+        .query(
+            TextQuery::new("power", "POWR?")
+                .parser(ParserKind::PowerState)
+                .strip_prefix("POWR="),
+        )
+        .query(
+            TextQuery::new("input", "INPT?")
+                .parser(ParserKind::Text)
+                .strip_prefix("INPT="),
+        )
 }
 
 fn driver(dev: &FakeDevice) -> TcpDriver {
