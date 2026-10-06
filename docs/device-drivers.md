@@ -89,7 +89,9 @@ Rules (enforced by `DeviceProfile::from_yaml_str`):
 4. **Matching** — a profile applies only to a device whose reported manufacturer *and* model match (`DeviceProfile::matches`, trimmed and case-insensitive). A device reporting neither never matches.
 5. Bounded: ≤ 64 commands / state fields, ≤ 16 args per command, timeouts 1 ms–30 s, no credentials.
 
-A driver turns a profile plus a host into a configured driver; `OscDriverConfig::from_profile` does this for OSC and refuses profiles of any other protocol. Only OSC is implemented so far; other protocol types parse and validate but have no driver yet.
+Text protocols (`type: tcp`) add: `protocol.terminator` (`lf`/`crlf`/`cr`, default `crlf`); per command `ack` (the reply line that acknowledges it; absent = fire-and-forget) and `$placeholders` embedded in `send` (`"INPT $input"`; booleans render as `1`/`0`); per state field `parser` (`auto`, `bool`, `int`, `float`, `text`, `power_state`) and `strip_prefix`. Substituted values must be short, printable and single-line, so a value can never smuggle a second command to the device. See `drivers/examples/tcp-projector.yaml`.
+
+A driver turns a profile plus a host into a configured driver; `OscDriverConfig::from_profile` does this for OSC and refuses profiles of any other protocol. OSC (`drivers/osc`) and TCP (`drivers/generic`) are implemented; other protocol types parse and validate but have no driver yet. TCP opens one connection per operation (stateless, tolerant of devices that drop idle connections).
 
 ## Safety
 

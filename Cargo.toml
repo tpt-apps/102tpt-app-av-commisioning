@@ -13,6 +13,7 @@ members = [
     "crates/tpt-app-av-commissioning-testkit",
     "crates/tpt-app-av-commissioning-profile",
     "drivers/osc",
+    "drivers/generic",
 ]
 
 [workspace.package]
@@ -47,6 +48,7 @@ tpt-app-av-commissioning-core = { path = "crates/tpt-app-av-commissioning-core",
 tpt-app-av-commissioning-runner = { path = "crates/tpt-app-av-commissioning-runner", version = "0.1.0" }
 tpt-app-av-commissioning-testkit = { path = "crates/tpt-app-av-commissioning-testkit", version = "0.1.0" }
 tpt-app-av-commissioning-profile = { path = "crates/tpt-app-av-commissioning-profile", version = "0.1.0" }
+tpt-app-av-commissioning-driver-generic = { path = "drivers/generic", version = "0.1.0" }
 tpt-app-av-commissioning-driver-osc = { path = "drivers/osc", version = "0.1.0" }
 
 # TPT ecosystem dependencies, pinned to exact commits (cargo-deny allows only

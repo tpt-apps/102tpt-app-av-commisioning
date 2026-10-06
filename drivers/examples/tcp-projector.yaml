@@ -1,0 +1,20 @@
+# Example device profile (schema version 1): a projector with a line-based
+# ASCII protocol over TCP. Applies only to manufacturer "TextCo", model "Lux-3".
+schema_version: 1
+device:
+  id: tcp-projector
+  match:
+    manufacturer: TextCo
+    model: Lux-3
+  protocol:
+    type: tcp
+    port: 4352
+    timeout_ms: 400
+    terminator: crlf
+  commands:
+    power_on:  { send: "POWR 1", ack: "OK" }
+    power_off: { send: "POWR 0", ack: "OK" }
+    set_input: { send: "INPT $input", ack: "OK" }
+  state:
+    power:  { query: "POWR?", parser: power_state, strip_prefix: "POWR=" }
+    input:  { query: "INPT?", parser: text,        strip_prefix: "INPT=" }

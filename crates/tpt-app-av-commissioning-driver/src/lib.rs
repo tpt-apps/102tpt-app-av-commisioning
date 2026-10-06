@@ -10,6 +10,7 @@
 pub mod discovery;
 pub mod driver;
 pub mod error;
+pub mod net;
 
 pub use discovery::{DeviceDiscovery, DiscoveryConfig};
 pub use driver::DeviceDriver;

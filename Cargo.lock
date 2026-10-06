@@ -826,6 +826,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tpt-app-av-commissioning-driver-generic"
+version = "0.1.0"
+dependencies = [
+ "tpt-app-av-commissioning-device",
+ "tpt-app-av-commissioning-driver",
+ "tpt-app-av-commissioning-model",
+ "tpt-app-av-commissioning-profile",
+ "tpt-app-av-commissioning-test",
+]
+
+[[package]]
 name = "tpt-app-av-commissioning-driver-osc"
 version = "0.1.0"
 dependencies = [

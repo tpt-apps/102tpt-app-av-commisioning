@@ -1,12 +1,12 @@
 //! The OSC `DeviceDriver`.
 
-use std::io::ErrorKind;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::Instant;
 
 use tpt_app_av_commissioning_device::{
     DeviceCapabilities, DeviceCommand, DeviceIdentity, DeviceResponse, DeviceState, StateValue,
 };
+use tpt_app_av_commissioning_driver::net::map_io_error;
 use tpt_app_av_commissioning_driver::{DeviceDriver, DriverError};
 use tpt_av_control_osc::{OscArg, OscMessage, OscServer};
 
@@ -243,25 +243,8 @@ fn parse_arbitrary(text: &str) -> Result<OscMessage, DriverError> {
     Ok(OscMessage::new_unchecked(address.to_owned(), args))
 }
 
-/// Map a socket error onto the driver error model.
 fn map_io(error: &std::io::Error, config: &OscDriverConfig) -> DriverError {
-    match error.kind() {
-        // UDP reports a timed-out read as WouldBlock (Unix) or TimedOut (Windows).
-        ErrorKind::WouldBlock | ErrorKind::TimedOut => {
-            DriverError::Timeout(config.timeout.as_millis() as u64)
-        }
-        // ICMP port/host unreachable surfaces as a reset/refused on a
-        // connected UDP socket.
-        ErrorKind::ConnectionRefused
-        | ErrorKind::ConnectionReset
-        | ErrorKind::ConnectionAborted
-        | ErrorKind::NetworkUnreachable
-        | ErrorKind::HostUnreachable
-        | ErrorKind::AddrNotAvailable => {
-            DriverError::Unreachable(format!("{}: {error}", config.target))
-        }
-        _ => DriverError::Protocol(format!("{}: {error}", config.target)),
-    }
+    map_io_error(error, config.target, config.timeout)
 }
 
 impl DeviceDriver for OscDriver {

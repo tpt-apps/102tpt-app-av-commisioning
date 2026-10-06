@@ -119,7 +119,7 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 ## Phase 5 — Generic Protocol Drivers (§40–41)
 
 - [ ] Generic drivers under `drivers/generic/`
-  - [ ] TCP
+  - [x] TCP (`drivers/generic`, `tpt-app-av-commissioning-driver-generic`: line-based text protocols, profile-driven, injection-safe; tested against a fake device through the Phase 9 tests)
   - [ ] UDP
   - [ ] HTTP
   - [ ] WebSocket
@@ -127,7 +127,7 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
   - [ ] MIDI (`drivers/midi/`)
   - [ ] SNMP (where appropriate)
   - [ ] Serial
-- [x] Versioned device profile format (`tpt-app-av-commissioning-profile`; sample in `drivers/examples/`: match manufacturer/model, protocol config, commands, state queries; text-protocol parsers still to come with the TCP/serial drivers)
+- [x] Versioned device profile format (`tpt-app-av-commissioning-profile`; sample in `drivers/examples/`: match manufacturer/model, protocol config, commands, state queries; built-in reply parsers: auto/bool/int/float/text/power_state)
 - [x] Profile format validation (versioned, no arbitrary code execution)
 
 ## Phase 6 — Device Discovery (§11)

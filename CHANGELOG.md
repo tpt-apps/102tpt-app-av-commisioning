@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New `tpt-app-av-commissioning-profile` crate: versioned YAML profile format with validation, executable-content guard, manufacturer/model matching
   - `OscDriverConfig::from_profile`; sample `drivers/examples/osc-projector.yaml`
 
+- Phase 5 — TCP driver (`drivers/generic`)
+  - Line-based text-protocol driver configured from `type: tcp` profiles; reply parsers, ack lines, prefix stripping, injection-safe placeholder substitution
+  - Shared network safety helpers (`driver::net`) now used by the OSC and TCP drivers
+
 ### Notes
 
 - TPT ecosystem crates are pinned as git dependencies by exact commit (see `[workspace.dependencies]`); bump revs deliberately.

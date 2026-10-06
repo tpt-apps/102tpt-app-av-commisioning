@@ -40,7 +40,7 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use tpt_app_av_commissioning_device::DeviceIdentity;
+use tpt_app_av_commissioning_device::{DeviceIdentity, StateValue};
 
 /// The schema version this build reads and writes.
 pub const SCHEMA_VERSION: u32 = 1;
@@ -159,6 +159,37 @@ pub struct ProtocolSpec {
     /// Per-request timeout in milliseconds (default 1000).
     #[serde(default)]
     pub timeout_ms: Option<u64>,
+    /// Line terminator for text protocols (default `crlf`).
+    #[serde(default)]
+    pub terminator: Option<Terminator>,
+}
+
+/// How lines end on a text protocol.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Terminator {
+    Lf,
+    Crlf,
+    Cr,
+}
+
+impl Terminator {
+    /// The bytes appended to every sent line.
+    pub fn bytes(&self) -> &'static [u8] {
+        match self {
+            Terminator::Lf => b"\n",
+            Terminator::Crlf => b"\r\n",
+            Terminator::Cr => b"\r",
+        }
+    }
+
+    /// The byte that ends a received line.
+    pub fn end_byte(&self) -> u8 {
+        match self {
+            Terminator::Lf | Terminator::Crlf => b'\n',
+            Terminator::Cr => b'\r',
+        }
+    }
 }
 
 impl ProtocolSpec {
@@ -166,16 +197,26 @@ impl ProtocolSpec {
     pub fn timeout_ms_or_default(&self) -> u64 {
         self.timeout_ms.unwrap_or(1000)
     }
+
+    /// The line terminator, defaulted.
+    pub fn terminator_or_default(&self) -> Terminator {
+        self.terminator.unwrap_or(Terminator::Crlf)
+    }
 }
 
 /// A command's message.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CommandSpec {
-    /// What to send: an OSC address, or protocol text.
+    /// What to send: an OSC address, or protocol text. Text protocols may
+    /// embed `$placeholders` (e.g. `INPUT $input`).
     pub send: String,
     #[serde(default)]
     pub args: Vec<ProfileArg>,
+    /// Text protocols: the reply line that acknowledges the command. When
+    /// absent the command is fire-and-forget.
+    #[serde(default)]
+    pub ack: Option<String>,
 }
 
 /// A state field's query.
@@ -184,10 +225,78 @@ pub struct CommandSpec {
 pub struct StateSpec {
     /// What to ask: an OSC address, or protocol text.
     pub query: String,
-    /// Name of a built-in parser for text protocols (unused by OSC, which
-    /// returns typed values).
+    /// How a text reply becomes a typed value (default `auto`). Unused by
+    /// OSC, which returns typed values.
     #[serde(default)]
-    pub parser: Option<String>,
+    pub parser: Option<ParserKind>,
+    /// Text protocols: a prefix to strip from the reply before parsing
+    /// (e.g. `POWR=`). A reply without it is a malformed response.
+    #[serde(default)]
+    pub strip_prefix: Option<String>,
+}
+
+/// Built-in reply parsers. Closed on purpose: a profile selects behaviour, it
+/// never supplies code.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ParserKind {
+    /// Boolean for on/off/true/false, else integer, else float, else text.
+    #[default]
+    Auto,
+    Bool,
+    Int,
+    Float,
+    Text,
+    /// `on`/`power on`/`1` is true; `off`/`power off`/`standby`/`0` is false;
+    /// transitional states such as `warming` and `cooling` stay text so a test
+    /// expecting a boolean fails visibly rather than guessing.
+    PowerState,
+}
+
+impl ParserKind {
+    /// Parse one reply (prefix already stripped).
+    pub fn parse(&self, reply: &str) -> Result<StateValue, String> {
+        let t = reply.trim();
+        let lower = t.to_ascii_lowercase();
+        let as_bool = || match lower.as_str() {
+            "on" | "true" | "1" | "yes" => Some(true),
+            "off" | "false" | "0" | "no" => Some(false),
+            _ => None,
+        };
+        match self {
+            ParserKind::Text => Ok(StateValue::Text(t.to_owned())),
+            ParserKind::Bool => as_bool()
+                .map(StateValue::Boolean)
+                .ok_or_else(|| format!("{t:?} is not a boolean")),
+            ParserKind::Int => t
+                .parse::<i64>()
+                .map(StateValue::Integer)
+                .map_err(|_| format!("{t:?} is not an integer")),
+            ParserKind::Float => t
+                .parse::<f64>()
+                .ok()
+                .filter(|f| f.is_finite())
+                .map(StateValue::Float)
+                .ok_or_else(|| format!("{t:?} is not a number")),
+            ParserKind::PowerState => Ok(match lower.as_str() {
+                "on" | "power on" | "1" => StateValue::Boolean(true),
+                "off" | "power off" | "standby" | "0" => StateValue::Boolean(false),
+                _ => StateValue::Text(t.to_owned()),
+            }),
+            ParserKind::Auto => {
+                // "0"/"1" are numbers under `auto`; use `bool` to read them as flags.
+                if let Some(b) = as_bool().filter(|_| !matches!(lower.as_str(), "0" | "1")) {
+                    Ok(StateValue::Boolean(b))
+                } else if let Ok(i) = t.parse::<i64>() {
+                    Ok(StateValue::Integer(i))
+                } else if let Some(f) = t.parse::<f64>().ok().filter(|f| f.is_finite()) {
+                    Ok(StateValue::Float(f))
+                } else {
+                    Ok(StateValue::Text(t.to_owned()))
+                }
+            }
+        }
+    }
 }
 
 /// A command argument: a literal, or a `$placeholder` filled from the command.
@@ -239,6 +348,55 @@ impl Placeholder {
             Self::Source | Self::Destination => "set_route",
         }
     }
+}
+
+/// Placeholders embedded in `text` with their byte ranges. A `$` not followed
+/// by a lowercase letter is ordinary text.
+fn scan_placeholders(text: &str) -> Vec<(std::ops::Range<usize>, Result<Placeholder, String>)> {
+    let bytes = text.as_bytes();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'$' && bytes.get(i + 1).is_some_and(u8::is_ascii_lowercase) {
+            let start = i;
+            i += 1;
+            while i < bytes.len() && (bytes[i].is_ascii_lowercase() || bytes[i] == b'_') {
+                i += 1;
+            }
+            if let Some(found) = Placeholder::parse(&text[start..i]) {
+                out.push((start..i, found));
+            }
+        } else {
+            i += 1;
+        }
+    }
+    out
+}
+
+/// The `$placeholders` embedded in `text`, in order. `Err` carries an unknown
+/// name.
+pub fn placeholders_in(text: &str) -> Vec<Result<Placeholder, String>> {
+    scan_placeholders(text)
+        .into_iter()
+        .map(|(_, r)| r)
+        .collect()
+}
+
+/// Replace every embedded placeholder in `text` with `value(placeholder)`.
+/// Unknown placeholders and values the callback rejects are errors.
+pub fn substitute(
+    text: &str,
+    mut value: impl FnMut(Placeholder) -> Result<String, String>,
+) -> Result<String, String> {
+    let mut out = String::with_capacity(text.len());
+    let mut last = 0;
+    for (range, found) in scan_placeholders(text) {
+        out.push_str(&text[last..range.start]);
+        out.push_str(&value(found?)?);
+        last = range.end;
+    }
+    out.push_str(&text[last..]);
+    Ok(out)
 }
 
 impl ProfileArg {
@@ -339,6 +497,18 @@ impl DeviceProfile {
                 ));
             }
             check_text(&format!("commands.{name}.send"), &cmd.send)?;
+            for found in placeholders_in(&cmd.send) {
+                let ph = found.map_err(ProfileError::Validation)?;
+                if ph.command() != name {
+                    return bad(format!(
+                        "commands.{name}: {ph:?} placeholder may only be used in `{}`",
+                        ph.command()
+                    ));
+                }
+            }
+            if let Some(ack) = &cmd.ack {
+                check_text(&format!("commands.{name}.ack"), ack)?;
+            }
             if cmd.args.len() > MAX_ARGS {
                 return bad(format!("commands.{name}: at most {MAX_ARGS} args"));
             }
@@ -362,6 +532,12 @@ impl DeviceProfile {
                 return bad("state field names must not be empty".to_owned());
             }
             check_text(&format!("state.{field}.query"), &spec.query)?;
+            if !placeholders_in(&spec.query).is_empty() {
+                return bad(format!("state.{field}.query may not contain placeholders"));
+            }
+            if let Some(prefix) = &spec.strip_prefix {
+                check_text(&format!("state.{field}.strip_prefix"), prefix)?;
+            }
         }
         Ok(())
     }
@@ -553,5 +729,69 @@ device:
         assert!(!p.matches(&id(Some("Other"), Some("Beam-1"))));
         assert!(!p.matches(&id(Some("Example"), None)));
         assert!(!p.matches(&DeviceIdentity::default()));
+    }
+
+    #[test]
+    fn text_protocol_fields_validate() {
+        let doc = r#"
+schema_version: 1
+device:
+  id: tcp-proj
+  match: { manufacturer: A, model: B }
+  protocol: { type: tcp, port: 4352, terminator: cr }
+  commands:
+    power_on: { send: "POWR 1", ack: "OK" }
+    set_input: { send: "INPT $input" }
+  state:
+    power: { query: "POWR?", parser: power_state, strip_prefix: "POWR=" }
+"#;
+        let p = DeviceProfile::from_yaml_str(doc).unwrap();
+        assert_eq!(p.device.protocol.terminator_or_default(), Terminator::Cr);
+        assert_eq!(p.device.commands["power_on"].ack.as_deref(), Some("OK"));
+        assert_eq!(p.device.state["power"].parser, Some(ParserKind::PowerState));
+        let wrong = doc.replace("INPT $input", "INPT $level_db");
+        assert!(matches!(err(&wrong), ProfileError::Validation(_)));
+        let unknown = doc.replace("INPT $input", "INPT $nope");
+        assert!(matches!(err(&unknown), ProfileError::Validation(_)));
+        let in_query = doc.replace("POWR?", "POWR? $input");
+        assert!(matches!(err(&in_query), ProfileError::Validation(_)));
+        let bad_parser = doc.replace("power_state", "python");
+        assert!(matches!(err(&bad_parser), ProfileError::Parse(_)));
+    }
+
+    #[test]
+    fn parsers_are_typed_and_conservative() {
+        use StateValue::*;
+        assert_eq!(ParserKind::Bool.parse(" ON ").unwrap(), Boolean(true));
+        assert!(ParserKind::Bool.parse("maybe").is_err());
+        assert_eq!(ParserKind::Int.parse("42").unwrap(), Integer(42));
+        assert!(ParserKind::Int.parse("4.2").is_err());
+        assert_eq!(ParserKind::Float.parse("-3.5").unwrap(), Float(-3.5));
+        assert!(ParserKind::Float.parse("NaN").is_err());
+        assert_eq!(
+            ParserKind::PowerState.parse("Standby").unwrap(),
+            Boolean(false)
+        );
+        assert_eq!(
+            ParserKind::PowerState.parse("warming").unwrap(),
+            Text("warming".into())
+        );
+        assert_eq!(ParserKind::Auto.parse("on").unwrap(), Boolean(true));
+        assert_eq!(ParserKind::Auto.parse("1").unwrap(), Integer(1));
+        assert_eq!(ParserKind::Auto.parse("2.5").unwrap(), Float(2.5));
+        assert_eq!(ParserKind::Auto.parse("NaN").unwrap(), Text("NaN".into()));
+        assert_eq!(
+            ParserKind::Auto.parse("HDMI1").unwrap(),
+            Text("HDMI1".into())
+        );
+    }
+
+    #[test]
+    fn finds_embedded_placeholders() {
+        let found = placeholders_in("ROUTE $source TO $destination, cost $5 $Z $nope");
+        assert_eq!(found.len(), 3);
+        assert_eq!(found[0], Ok(Placeholder::Source));
+        assert_eq!(found[1], Ok(Placeholder::Destination));
+        assert!(found[2].is_err());
     }
 }

@@ -5,11 +5,13 @@ use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 
 use tpt_app_av_commissioning_device::{DeviceCapabilities, DeviceIdentity};
+use tpt_app_av_commissioning_driver::net::{check_target, check_timeout};
 use tpt_app_av_commissioning_driver::DriverError;
-use tpt_app_av_commissioning_profile::{DeviceProfile, Placeholder, ProfileArg, ProtocolKind};
+use tpt_app_av_commissioning_profile::{
+    placeholders_in, DeviceProfile, Placeholder, ProfileArg, ProtocolKind,
+};
 
-/// Longest reply timeout accepted.
-pub const MAX_TIMEOUT: Duration = Duration::from_secs(30);
+pub use tpt_app_av_commissioning_driver::net::MAX_TIMEOUT;
 
 /// One argument of a bound OSC message: a literal, or a value taken from the
 /// `DeviceCommand` being executed.
@@ -135,6 +137,11 @@ impl OscDriverConfig {
                 ..DeviceIdentity::default()
             });
         for (name, cmd) in &spec.commands {
+            if !placeholders_in(&cmd.send).is_empty() {
+                return Err(DriverError::Config(format!(
+                    "commands.{name}: OSC addresses cannot embed placeholders; pass them as args"
+                )));
+            }
             let args = cmd.args.iter().map(binding_arg).collect();
             config = config.bind(name.clone(), Binding::new(cmd.send.clone(), args));
         }
@@ -160,30 +167,17 @@ impl OscDriverConfig {
     /// Check the config is safe and coherent. [`crate::OscDriver::new`] calls
     /// this.
     pub fn validate(&self) -> Result<(), DriverError> {
-        let bad = |m: String| Err(DriverError::Config(m));
-        let ip = self.target.ip();
-        if ip.is_unspecified() || ip.is_multicast() {
-            return bad(format!("target {ip} must be an explicit unicast address"));
-        }
-        if matches!(ip, IpAddr::V4(v4) if v4.is_broadcast()) {
-            return bad("broadcast targets are not allowed".to_owned());
-        }
-        if self.target.port() == 0 {
-            return bad("target port must not be 0".to_owned());
-        }
-        if self.timeout.is_zero() || self.timeout > MAX_TIMEOUT {
-            return bad(format!(
-                "timeout must be between 1 ms and {} s",
-                MAX_TIMEOUT.as_secs()
-            ));
-        }
+        check_target(self.target)?;
+        check_timeout(self.timeout)?;
         for binding in self.commands.values() {
             check_address(&binding.address)?;
         }
         for q in &self.state_queries {
             check_address(&q.address)?;
             if q.field.trim().is_empty() {
-                return bad("state query field must not be empty".to_owned());
+                return Err(DriverError::Config(
+                    "state query field must not be empty".to_owned(),
+                ));
             }
         }
         Ok(())
