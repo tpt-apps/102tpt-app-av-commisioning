@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Phase 12 — Audio test-tone measurement (§13.6, §19) on the TPT ecosystem
+  - `test::audio`: tone generation (`tpt-dsp-audio` oscillator), 16-bit PCM
+    WAV I/O (`tpt-av-cadence-wav`, stereo downmixed on read), and buffer
+    analysis (`tpt-dsp-core` Hann FFT peak with parabolic interpolation,
+    `tpt-dsp-analysis` RMS/ZCR): level, frequency, ZCR cross-check,
+    clipped-sample count, silence detection, evaluated against
+    `ToneExpectations` — inconclusive without expectations
+  - Workspace now compiles against the `tpt-dsp` and `tpt-cadence` repos on
+    GitHub (pinned revs unchanged); `num-complex` 0.4 joins the workspace
+
 - Phase 18/19 — Execution policy and restore-state (§36, §37)
   - `ExecutionPolicy` project setting (power cycles denied by default); the
     runner blocks (never fails) tests whose `MutationKind` the policy does

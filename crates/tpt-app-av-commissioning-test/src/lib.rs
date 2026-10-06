@@ -5,6 +5,7 @@
 //!
 //! Licensed under either of MIT OR Apache-2.0, at your option.
 
+pub mod audio;
 pub mod check;
 pub mod defect_link;
 pub mod definition;
@@ -16,6 +17,10 @@ pub mod result;
 pub mod status;
 pub mod test_kind;
 
+pub use audio::{
+    analyze_tone, generate_tone, read_wav, write_wav, AudioError, ToneAnalysis, ToneExpectations,
+    ToneSpec,
+};
 pub use check::{evaluate, Check, Evaluation, Expectation};
 pub use defect_link::defect_from_result;
 pub use definition::{CommissioningTest, ExecutionMode, TestError, TestId, TestRequirements};

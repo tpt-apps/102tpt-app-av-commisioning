@@ -19,6 +19,13 @@ thiserror.workspace = true
 tpt-app-av-commissioning-model.workspace = true
 tpt-app-av-commissioning-device.workspace = true
 tpt-app-av-commissioning-driver.workspace = true
+# Audio test-tone generation and analysis (§19 measurements, Phase 12)
+tpt-dsp-core.workspace = true
+tpt-dsp-analysis.workspace = true
+tpt-dsp-audio.workspace = true
+tpt-av-cadence-core.workspace = true
+tpt-av-cadence-wav.workspace = true
+num-complex.workspace = true
 
 [dev-dependencies]
 tpt-app-av-commissioning-testkit.workspace = true

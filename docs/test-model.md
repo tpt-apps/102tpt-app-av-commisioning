@@ -79,6 +79,19 @@ they can touch a device.
 
 A `Measurement` has name, value, unit, tolerance, and source. Measurements preserve raw values — no internal rounding before tolerance evaluation.
 
+### Audio tone analysis (tpt-dsp / tpt-cadence)
+
+Test tones are generated with the `tpt-dsp-audio` oscillator and written as
+16-bit PCM WAV via `tpt-av-cadence-wav` (multi-channel files are downmixed
+on read). `analyze_tone` measures the RMS level (dBFS), dominant frequency
+(Hann-windowed FFT peak with parabolic interpolation), a zero-crossing
+frequency estimate as a cross-check, and the clipped-sample count, then
+checks `ToneExpectations` (frequency tolerance, level range, clipping
+ceiling, silence). Measurements without expectations are `Inconclusive` —
+never an implied pass. Everything works on sample buffers, so it is
+testable without audio hardware; live capture through `tpt-av-audio-io`
+feeds the same functions.
+
 ## Concrete test types (§13)
 
 `tpt-app-av-commissioning-test` ships ready-made tests for all nine kinds. Each reports its category through `CommissioningTest::kind()` (informational; scheduling never depends on it). DSL procedures carry the same category via an optional `kind:` pin, otherwise inferred from the fields they measure/assert (`TestProcedure::kind()`; unknown fields stay uncategorised).

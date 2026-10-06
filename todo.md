@@ -209,9 +209,9 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 - [x] `Measurement` struct (name, value, unit, tolerance, source)
 - [x] `MeasurementValue`, `Unit`, `Tolerance`, `MeasurementSource` types
 - [x] Preserve raw values; no internal rounding before tolerance evaluation
-- [ ] Integrate `tpt-audio` (routing, level monitoring, channel testing, signal generation/monitoring)
-- [ ] Integrate `tpt-dsp` (frequency response, signal level, noise, THD, phase, latency, spectral analysis, test-tone analysis)
-- [ ] Integrate `tpt-cadence` where audio codec handling of test media is required
+- [ ] Integrate `tpt-audio` (routing, level monitoring, channel testing, signal generation/monitoring) — device enumeration flows through `tpt-av-audio-io` already; live routing/monitoring awaits the capture path
+- [x] Integrate `tpt-dsp` (test-tone analysis core: signal level, frequency, silence, clipping via `tpt-dsp-core` FFT + `tpt-dsp-analysis` RMS/ZCR and the `tpt-dsp-audio` oscillator — `test::audio`; THD/phase/latency/response-sweep measurement pending)
+- [x] Integrate `tpt-cadence` where audio codec handling of test media is required (test tones are written/read as 16-bit PCM WAV via `tpt-av-cadence-wav`; WAV evidence files are analysis-compatible)
 
 ## Phase 13 — End-to-End Tests (§20)
 
