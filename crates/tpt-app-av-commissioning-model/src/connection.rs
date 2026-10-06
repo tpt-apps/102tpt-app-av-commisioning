@@ -19,6 +19,22 @@ pub enum SignalType {
     Unknown,
 }
 
+impl SignalType {
+    /// Stable lowercase name.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SignalType::Video => "video",
+            SignalType::Audio => "audio",
+            SignalType::AudioVideo => "audio_video",
+            SignalType::Network => "network",
+            SignalType::Control => "control",
+            SignalType::Lighting => "lighting",
+            SignalType::Clock => "clock",
+            SignalType::Unknown => "unknown",
+        }
+    }
+}
+
 /// How a signal is carried.
 ///
 /// Extensible: `Other` covers proprietary and emerging protocols.

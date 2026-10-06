@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Phase 14/15 — Baselines, regression and drift (§21–22)
+  - `core::baseline`: fingerprinted `Baseline` snapshots (device identity
+    incl. tracked configuration attributes, signal routes, per-test
+    statuses), aggregate headline, `RunComparison` that highlights only
+    meaningful outcome changes, and `detect_drift` for firmware / address /
+    replacement (serial) / attribute / route / added-removed drift
+  - Baseline snapshots persist as payload next to their fingerprint;
+    `(project, label)` stays unique so existing snapshots are preserved
+
+- Phase 16 — Defect tracking (§23)
+  - `Defect`, `Severity` (Critical/Major/Minor/Cosmetic), `DefectStatus`
+    (Open … Verified/Accepted/Deferred, terminal states explicit)
+  - `defect_from_result` converts failed test results into defects with
+    evidence and messages carried over; typed store round-trip and status
+    updates
+
+- Phase 17 — Audit log (§33)
+  - `AuditEvent` / `AuditEventType` / `Actor` in the model, persisted
+    chronologically per project (`append_audit_event` / `list_audit_events`)
+
 - Phase 10 — Manual & semi-automated workflow (§15, §4.5)
   - `ManualChecklist` model: Pass / Fail / N/A verdicts per item with note and
     evidence; a failed item fails the checklist; confirming an incomplete
@@ -38,6 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `SignalType` gained `as_str()` (matching `Transport`)
+- Store: defects and baselines carry a `payload` column (migrated on open
+  via `PRAGMA table_info` probe); `save_baseline`/`save_defect` take typed
+  records, `list_defects` returns typed `Defect`s, `StoredDefect` removed
 - `CommissioningTest` requires `Send + Sync` (tests are dispatched onto
   worker threads)
 - `TestResult` gained optional serde-defaulted `checklist` and `pending`

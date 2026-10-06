@@ -35,9 +35,11 @@ Persisted tables:
 - `test_executions`
 - `results`
 - `measurements`
-- `defects`
+- `defects` (with a `payload` column carrying the full defect record)
 - `evidence` (metadata only)
-- `configuration_baselines`
+- `configuration_baselines` (with a `payload` column carrying the full
+  baseline snapshot; older databases are migrated on open)
+- `audit_log` (§33 event trail)
 
 ## Manifest format (§26)
 

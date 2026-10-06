@@ -44,26 +44,6 @@ id_type! {
     EvidenceId
 }
 
-/// Identifies a defect (targeted tracking linkage).
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct DefectId(String);
-
-impl DefectId {
-    pub fn new<S: Into<String>>(value: S) -> Self {
-        Self(value.into())
-    }
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl std::fmt::Display for DefectId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

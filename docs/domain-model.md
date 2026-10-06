@@ -88,3 +88,31 @@ All aggregate ids (`ProjectId`, `RoomId`, `DeviceId`, `EndpointId`, `ConnectionI
 - A connection's endpoints must belong to devices in the same room.
 - A connection's source kind must be compatible with its signal type and transport (e.g. a VideoInput source is not valid for an HDMI video connection).
 - All references in a project must resolve within that project.
+
+## Defect (§23)
+
+A failed test converts into a `Defect` (severity Critical / Major / Minor /
+Cosmetic; status Open → Investigating → Fixed → Retest Required → Verified,
+with Accepted and Deferred as explicit exits) referencing the tests that
+found it and the evidence captured. `Verified`, `Accepted` and `Deferred`
+are terminal; a failed retest moves back to `Retest Required` so nothing is
+silently reported as fixed.
+
+## Baseline & drift (§21–22)
+
+A `Baseline` snapshots device identity fingerprints (manufacturer, model,
+serial, firmware, addresses plus tracked configuration attributes), signal
+routes, and the run's per-test statuses; its fingerprint is a SHA-256 over
+that content. Comparing a later run highlights only meaningful changes:
+worse (or better) test outcomes, new failures, and tests that no longer
+produce a verdict. Comparing current state detects drift: firmware changes,
+address changes, replaced units (different serial — never assumed identical
+because the model matches), attribute changes, and route changes.
+
+## Audit log (§33)
+
+Significant project actions (project created, devices added/modified, test
+runs, result changes, defect lifecycle, baselines, configuration imports,
+report generation and signing) are recorded as `AuditEvent`s with
+timestamp, actor (`User(name)` or `System`), object id, and structured
+details.

@@ -8,14 +8,17 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 use sha2::{Digest, Sha256};
 
 use tpt_app_av_commissioning_model::{
-    Connection as ModelConnection, Device, Endpoint, EvidenceKind, EvidenceRef, ProjectId, Room,
+    Actor, AuditEvent, AuditEventType, Connection as ModelConnection, Defect, DefectStatus, Device,
+    Endpoint, EvidenceKind, EvidenceRef, ProjectId, Room,
 };
 use tpt_app_av_commissioning_test::TestResult;
+
+use crate::baseline::Baseline;
 
 /// Errors produced by the project store.
 #[derive(Debug, thiserror::Error)]
@@ -32,6 +35,8 @@ pub enum ProjectStoreError {
     EvidenceExists(PathBuf),
     #[error("baseline label `{0}` already exists; snapshot preserved")]
     BaselineExists(String),
+    #[error("no defect with id `{0}`")]
+    MissingDefect(String),
     #[error("project meta not set")]
     NoProjectMeta,
 }
@@ -135,6 +140,7 @@ CREATE TABLE IF NOT EXISTS defects (
     description TEXT,
     related_tests TEXT NOT NULL DEFAULT '[]',
     status TEXT NOT NULL,
+    payload TEXT,
     created_at TEXT NOT NULL
 );
 
@@ -154,8 +160,19 @@ CREATE TABLE IF NOT EXISTS configuration_baselines (
     project_id TEXT NOT NULL,
     label TEXT NOT NULL,
     fingerprint TEXT NOT NULL,
+    payload TEXT,
     created_at TEXT NOT NULL,
     UNIQUE (project_id, label)
+);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    actor TEXT NOT NULL,
+    object_id TEXT,
+    details TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE INDEX IF NOT EXISTS idx_devices_project ON devices(project_id);
@@ -163,6 +180,71 @@ CREATE INDEX IF NOT EXISTS idx_endpoints_device ON endpoints(device_id);
 CREATE INDEX IF NOT EXISTS idx_results_run ON results(run_id);
 CREATE INDEX IF NOT EXISTS idx_evidence_project ON evidence_meta(project_id);
 "#;
+
+/// Bring older project databases up to the current schema. Idempotent:
+/// columns are only added when the `PRAGMA table_info` probe does not find
+/// them yet.
+fn migrate(conn: &Connection) -> Result<(), ProjectStoreError> {
+    for (table, column) in [
+        ("configuration_baselines", "payload"),
+        ("defects", "payload"),
+    ] {
+        if !column_exists(conn, table, column)? {
+            conn.execute(&format!("ALTER TABLE {table} ADD COLUMN {column} TEXT"), [])?;
+        }
+    }
+    Ok(())
+}
+
+/// Whether `table` has a column named `column`.
+fn column_exists(conn: &Connection, table: &str, column: &str) -> Result<bool, ProjectStoreError> {
+    let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})"))?;
+    let mut rows = stmt.query([])?;
+    while let Some(row) = rows.next()? {
+        let name: String = row.get(1)?;
+        if name == column {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+/// Parse a stored audit event type name. Only names this version writes can
+/// occur; anything else is treated as a conversion failure, not silently
+/// remapped.
+fn audit_event_type(name: &str) -> rusqlite::Result<AuditEventType> {
+    let known = [
+        ("project_created", AuditEventType::ProjectCreated),
+        ("device_added", AuditEventType::DeviceAdded),
+        ("device_modified", AuditEventType::DeviceModified),
+        ("test_run", AuditEventType::TestRun),
+        ("result_changed", AuditEventType::ResultChanged),
+        ("defect_created", AuditEventType::DefectCreated),
+        ("defect_status_changed", AuditEventType::DefectStatusChanged),
+        ("defect_closed", AuditEventType::DefectClosed),
+        ("baseline_created", AuditEventType::BaselineCreated),
+        (
+            "configuration_imported",
+            AuditEventType::ConfigurationImported,
+        ),
+        ("report_generated", AuditEventType::ReportGenerated),
+        ("report_signed", AuditEventType::ReportSigned),
+    ];
+    known
+        .iter()
+        .find(|(n, _)| *n == name)
+        .map(|(_, t)| *t)
+        .ok_or_else(|| {
+            rusqlite::Error::FromSqlConversionFailure(
+                1,
+                rusqlite::types::Type::Text,
+                Box::new(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("unknown audit event type `{name}`"),
+                )),
+            )
+        })
+}
 
 /// Project metadata row.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -173,24 +255,16 @@ pub struct ProjectMeta {
     pub site: Option<String>,
 }
 
-/// A stored defect record.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StoredDefect {
-    pub id: String,
-    pub severity: String,
-    pub title: String,
-    pub description: Option<String>,
-    pub related_tests: Vec<String>,
-    pub status: String,
-}
-
-/// A stored configuration baseline.
+/// A stored configuration baseline (summary row; the full snapshot is in
+/// `payload`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoredBaseline {
     pub id: String,
     pub label: String,
     pub fingerprint: String,
     pub created_at: String,
+    /// The serialized [`crate::baseline::Baseline`] snapshot, when present.
+    pub payload: Option<String>,
 }
 
 /// SQLite-backed store for one project.
@@ -214,6 +288,7 @@ impl ProjectStore {
 
         let conn = Connection::open(&db)?;
         conn.execute_batch(SCHEMA)?;
+        migrate(&conn)?;
         let mut store = Self {
             conn,
             root: project_dir.to_path_buf(),
@@ -234,6 +309,7 @@ impl ProjectStore {
         }
         let conn = Connection::open(&db)?;
         conn.execute_batch(SCHEMA)?;
+        migrate(&conn)?;
         Ok(Self {
             conn,
             root: project_dir.to_path_buf(),
@@ -581,53 +657,58 @@ impl ProjectStore {
 
     // -- defects -----------------------------------------------------------
 
-    /// Insert a new defect.
-    #[allow(clippy::too_many_arguments)]
-    pub fn insert_defect(
-        &mut self,
-        project: &ProjectId,
-        id: &str,
-        severity: &str,
-        title: &str,
-        description: Option<&str>,
-        related_tests: &[String],
-        status: &str,
-    ) -> Result<(), ProjectStoreError> {
+    /// Save a defect (§23). Inserting a second defect with the same id fails
+    /// so recorded defects are never silently overwritten.
+    pub fn save_defect(&mut self, defect: &Defect) -> Result<(), ProjectStoreError> {
+        let payload = serde_json::to_string(defect)?;
         self.conn.execute(
-            "INSERT INTO defects (id, project_id, severity, title, description, related_tests, status, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            "INSERT INTO defects (id, project_id, severity, title, description, related_tests, status, created_at, payload)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
-                id,
-                project.as_str(),
-                severity,
-                title,
-                description,
-                serde_json::to_string(related_tests)?,
-                status,
-                Utc::now().to_rfc3339()
+                defect.id.as_str(),
+                defect.project.as_str(),
+                defect.severity.as_str(),
+                defect.title,
+                defect.description,
+                serde_json::to_string(&defect.related_tests)?,
+                defect.status.as_str(),
+                defect.created_at.to_rfc3339(),
+                payload,
             ],
         )?;
         Ok(())
     }
 
-    /// List defects, optionally filtered by project.
-    pub fn list_defects(
-        &self,
-        project: &ProjectId,
-    ) -> Result<Vec<StoredDefect>, ProjectStoreError> {
-        let mut stmt = self.conn.prepare(
-            "SELECT id, severity, title, description, related_tests, status
-             FROM defects WHERE project_id = ?1 ORDER BY created_at",
+    /// Update a saved defect's status (§23 defect workflow). The payload is
+    /// updated alongside the column so reloaded defects agree.
+    pub fn update_defect_status(
+        &mut self,
+        id: &str,
+        status: DefectStatus,
+    ) -> Result<(), ProjectStoreError> {
+        let changed = self.conn.execute(
+            "UPDATE defects SET status = ?1, payload = json_set(payload, '$.status', ?2) WHERE id = ?3",
+            params![status.as_str(), status.as_str(), id],
         )?;
+        if changed == 0 {
+            return Err(ProjectStoreError::MissingDefect(id.to_owned()));
+        }
+        Ok(())
+    }
+
+    /// All defects for a project, oldest first.
+    pub fn list_defects(&self, project: &ProjectId) -> Result<Vec<Defect>, ProjectStoreError> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT payload FROM defects WHERE project_id = ?1 ORDER BY created_at")?;
         let rows = stmt.query_map(params![project.as_str()], |r| {
-            let related: String = r.get(4)?;
-            Ok(StoredDefect {
-                id: r.get(0)?,
-                severity: r.get(1)?,
-                title: r.get(2)?,
-                description: r.get(3)?,
-                related_tests: serde_json::from_str(&related).unwrap_or_default(),
-                status: r.get(5)?,
+            let payload: String = r.get(0)?;
+            serde_json::from_str(&payload).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    0,
+                    rusqlite::types::Type::Text,
+                    Box::new(e),
+                )
             })
         })?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -635,48 +716,133 @@ impl ProjectStore {
 
     // -- configuration baselines -------------------------------------------
 
-    /// Save a baseline. `(project, label)` is unique: saving a second time
-    /// with the same label fails so the previous snapshot is preserved.
-    pub fn save_baseline(
-        &mut self,
-        project: &ProjectId,
-        label: &str,
-        fingerprint: &str,
-    ) -> Result<(), ProjectStoreError> {
+    /// Save a baseline snapshot. `(project, label)` is unique: saving a
+    /// second time with the same label fails so the previous snapshot is
+    /// preserved (§27).
+    pub fn save_baseline(&mut self, baseline: &Baseline) -> Result<(), ProjectStoreError> {
+        let payload = serde_json::to_string(baseline)?;
         let result = self.conn.execute(
-            "INSERT OR IGNORE INTO configuration_baselines (id, project_id, label, fingerprint, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT OR IGNORE INTO configuration_baselines (id, project_id, label, fingerprint, payload, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![
-                uuid::Uuid::new_v4().to_string(),
-                project.as_str(),
-                label,
-                fingerprint,
-                Utc::now().to_rfc3339()
+                baseline.id,
+                baseline.project.as_str(),
+                baseline.label,
+                baseline.fingerprint(),
+                payload,
+                baseline.created_at.to_rfc3339()
             ],
         )?;
         if result == 0 {
-            return Err(ProjectStoreError::BaselineExists(label.to_owned()));
+            return Err(ProjectStoreError::BaselineExists(baseline.label.clone()));
         }
         Ok(())
     }
 
-    /// List saved baselines for a project.
+    /// Summary rows for saved baselines, oldest first.
     pub fn list_baselines(
         &self,
         project: &ProjectId,
     ) -> Result<Vec<StoredBaseline>, ProjectStoreError> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, label, fingerprint, created_at FROM configuration_baselines WHERE project_id = ?1 ORDER BY created_at",
+            "SELECT id, label, fingerprint, payload, created_at FROM configuration_baselines WHERE project_id = ?1 ORDER BY created_at",
         )?;
         let rows = stmt.query_map(params![project.as_str()], |r| {
             Ok(StoredBaseline {
                 id: r.get(0)?,
                 label: r.get(1)?,
                 fingerprint: r.get(2)?,
-                created_at: r.get(3)?,
+                payload: r.get(3)?,
+                created_at: r.get(4)?,
             })
         })?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    /// Load a full baseline snapshot by label.
+    pub fn load_baseline(
+        &self,
+        project: &ProjectId,
+        label: &str,
+    ) -> Result<Option<Baseline>, ProjectStoreError> {
+        let payload: Option<String> = self
+            .conn
+            .query_row(
+                "SELECT payload FROM configuration_baselines WHERE project_id = ?1 AND label = ?2",
+                params![project.as_str(), label],
+                |r| r.get(0),
+            )
+            .optional()?;
+        payload
+            .map(|p| serde_json::from_str(&p).map_err(ProjectStoreError::Json))
+            .transpose()
+    }
+
+    // -- audit log -----------------------------------------------------------
+
+    /// Record a significant project action (§33).
+    pub fn append_audit_event(
+        &mut self,
+        project: &ProjectId,
+        event: &AuditEvent,
+    ) -> Result<(), ProjectStoreError> {
+        self.conn.execute(
+            "INSERT INTO audit_log (project_id, timestamp, event_type, actor, object_id, details)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                project.as_str(),
+                event.timestamp.to_rfc3339(),
+                event.event_type.as_str(),
+                event.actor.display(),
+                event.object_id,
+                serde_json::to_string(&event.details)?,
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// The project's audit trail, chronological.
+    pub fn list_audit_events(
+        &self,
+        project: &ProjectId,
+    ) -> Result<Vec<AuditEvent>, ProjectStoreError> {
+        let mut stmt = self.conn.prepare(
+            "SELECT timestamp, event_type, actor, object_id, details
+             FROM audit_log WHERE project_id = ?1 ORDER BY id",
+        )?;
+        let rows = stmt.query_map(params![project.as_str()], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, Option<String>>(3)?,
+                r.get::<_, String>(4)?,
+            ))
+        })?;
+        let mut events = Vec::new();
+        for row in rows {
+            let (timestamp, event_type, actor, object_id, details) = row?;
+            events.push(AuditEvent {
+                timestamp: DateTime::parse_from_rfc3339(&timestamp)
+                    .map_err(|e| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            0,
+                            rusqlite::types::Type::Text,
+                            Box::new(e),
+                        )
+                    })?
+                    .with_timezone(&Utc),
+                event_type: audit_event_type(&event_type)?,
+                actor: if actor == "system" {
+                    Actor::System
+                } else {
+                    Actor::User(actor)
+                },
+                object_id,
+                details: serde_json::from_str(&details)?,
+            });
+        }
+        Ok(events)
     }
 
     /// Evidence metadata for a project.
@@ -1014,17 +1180,32 @@ mod tests {
         let dir = tmp_dir("baseline");
         let project = ProjectId::new("prj-1");
         let mut store = ProjectStore::create(&dir, &meta()).unwrap();
-        store
-            .save_baseline(&project, "after-commissioning", "fp-a")
-            .unwrap();
-        let err = store
-            .save_baseline(&project, "after-commissioning", "fp-b")
-            .unwrap_err();
+        let make = |label: &str, serial: &str| {
+            let mut device = Device::new(
+                tpt_app_av_commissioning_model::DeviceId::new("p1"),
+                "Projector",
+                DeviceType::Projector,
+            );
+            device.serial_number = Some(serial.to_owned());
+            Baseline::create(label, project.clone(), &[device], &[], &[])
+        };
+        let first = make("after-commissioning", "SN-1");
+        let fingerprint = first.fingerprint();
+        store.save_baseline(&first).unwrap();
+        let second = make("after-commissioning", "SN-2");
+        let err = store.save_baseline(&second).unwrap_err();
         assert!(matches!(err, ProjectStoreError::BaselineExists(_)));
+        // The original snapshot is preserved.
         assert_eq!(
             store.list_baselines(&project).unwrap()[0].fingerprint,
-            "fp-a"
+            fingerprint
         );
+        let loaded = store
+            .load_baseline(&project, "after-commissioning")
+            .unwrap()
+            .unwrap();
+        assert_eq!(loaded.fingerprint(), fingerprint);
+        assert_eq!(loaded.devices[0].serial_number.as_deref(), Some("SN-1"));
         drop(store);
         std::fs::remove_dir_all(&dir).unwrap();
     }
@@ -1034,20 +1215,69 @@ mod tests {
         let dir = tmp_dir("defect");
         let project = ProjectId::new("prj-1");
         let mut store = ProjectStore::create(&dir, &meta()).unwrap();
+        let mut defect = Defect::new(
+            "d-1",
+            project.clone(),
+            tpt_app_av_commissioning_model::Severity::Major,
+            "Display does not lock signal on input 3",
+            "only on warm reboots",
+        );
+        defect.relate_test("display-input");
+        store.save_defect(&defect).unwrap();
+
         store
-            .insert_defect(
-                &project,
-                "d-1",
-                "medium",
-                "Display does not lock signal on input 3",
-                Some("only on warm reboots"),
-                &["display-input".to_owned()],
-                "open",
-            )
+            .update_defect_status("d-1", DefectStatus::RetestRequired)
             .unwrap();
+        assert!(matches!(
+            store.update_defect_status("missing", DefectStatus::Open),
+            Err(ProjectStoreError::MissingDefect(_))
+        ));
+
         let defects = store.list_defects(&project).unwrap();
         assert_eq!(defects.len(), 1);
+        assert_eq!(defects[0].severity.as_str(), "major");
         assert_eq!(defects[0].related_tests, vec!["display-input"]);
+        assert_eq!(defects[0].status, DefectStatus::RetestRequired);
+        drop(store);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn audit_events_are_chronological_and_typed() {
+        let dir = tmp_dir("audit");
+        let project = ProjectId::new("prj-1");
+        let mut store = ProjectStore::create(&dir, &meta()).unwrap();
+        for (event_type, object) in [
+            (AuditEventType::ProjectCreated, None),
+            (AuditEventType::TestRun, Some("run-1".to_owned())),
+            (AuditEventType::DefectCreated, Some("d-1".to_owned())),
+        ] {
+            store
+                .append_audit_event(
+                    &project,
+                    &AuditEvent::now(
+                        event_type,
+                        if event_type == AuditEventType::TestRun {
+                            tpt_app_av_commissioning_model::Actor::System
+                        } else {
+                            tpt_app_av_commissioning_model::Actor::User("J. Doe".into())
+                        },
+                        object,
+                        serde_json::json!({ "note": "ok" }),
+                    ),
+                )
+                .unwrap();
+        }
+        let events = store.list_audit_events(&project).unwrap();
+        assert_eq!(events.len(), 3);
+        assert_eq!(events[0].event_type, AuditEventType::ProjectCreated);
+        assert_eq!(events[1].event_type, AuditEventType::TestRun);
+        assert_eq!(
+            events[1].actor,
+            tpt_app_av_commissioning_model::Actor::System
+        );
+        assert_eq!(events[2].object_id.as_deref(), Some("d-1"));
+        assert!(events.windows(2).all(|w| w[0].timestamp <= w[1].timestamp));
         drop(store);
         std::fs::remove_dir_all(&dir).unwrap();
     }

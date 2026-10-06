@@ -221,27 +221,27 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 ## Phase 14 — Baseline / Regression Mode (§21)
 
-- [ ] Create baseline (version, device/connection/test counts, aggregate result)
-- [ ] Run against baseline
-- [ ] Highlight only meaningful changes between runs
+- [x] Create baseline (version, device/connection/test counts, aggregate result — `core::baseline::Baseline`, fingerprinted, persisted with the snapshot payload; `(project, label)` unique so snapshots are never overwritten)
+- [x] Run against baseline (`compare_results`: aggregate headline plus per-test changes)
+- [x] Highlight only meaningful changes between runs (worsened/improved outcomes, new failures, tests that no longer produce a verdict — unchanged passes are never reported)
 
 ## Phase 15 — Configuration Drift Detection (§22)
 
-- [ ] Compare current system state vs recorded baseline
-- [ ] Detect firmware change, IP change, device replacement, configuration change, signal-route change, resolution change, audio-routing change, control configuration change
-- [ ] Configuration fingerprinting (manufacturer + model + serial + firmware + config fingerprint) so replacement devices aren't assumed identical
+- [x] Compare current system state vs recorded baseline (`detect_drift` over two `Baseline` snapshots)
+- [x] Detect firmware change, IP change, device replacement, configuration change, signal-route change, resolution change, audio-routing change, control configuration change (attribute-based: any tracked attribute — resolution, audio routing, control settings — is diffed; routes and connections are diffed too)
+- [x] Configuration fingerprinting (manufacturer + model + serial + firmware + config fingerprint) so replacement devices aren't assumed identical (SHA-256 identity fingerprint; serial difference ⇒ `DeviceReplaced`)
 
 ## Phase 16 — Defect Tracking (§23)
 
-- [ ] `Defect` struct (id, severity, title, description, related_tests, evidence, status)
-- [ ] `DefectStatus` enum (Open, Investigating, Fixed, Retest Required, Verified, Accepted, Deferred)
-- [ ] Convert failed test → defect workflow
-- [ ] Defect ↔ test/evidence linkage
+- [x] `Defect` struct (id, severity, title, description, related_tests, evidence, status)
+- [x] `DefectStatus` enum (Open, Investigating, Fixed, Retest Required, Verified, Accepted, Deferred; `Verified`/`Accepted`/`Deferred` terminal)
+- [x] Convert failed test → defect workflow (`defect_from_result`; only `Fail` converts — evidence and messages carry over)
+- [x] Defect ↔ test/evidence linkage (related_tests + evidence refs; persisted typed round-trip with `update_defect_status`)
 
 ## Phase 17 — Audit Log (§33)
 
-- [ ] `AuditEvent` struct (timestamp, event_type, actor, object_id, details)
-- [ ] `AuditEventType` coverage: project created, device added/modified, test run, result changed, defect created/closed, baseline created, configuration imported, report generated, report signed
+- [x] `AuditEvent` struct (timestamp, event_type, actor, object_id, details)
+- [x] `AuditEventType` coverage: project created, device added/modified, test run, result changed, defect created/closed (+ status changed), baseline created, configuration imported, report generated, report signed; persisted chronologically in the project store (`append_audit_event` / `list_audit_events`)
 
 ## Phase 18 — Security & Network Safety (§36, §38)
 

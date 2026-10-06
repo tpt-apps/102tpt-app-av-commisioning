@@ -10,7 +10,9 @@
 mod id;
 
 pub mod address;
+pub mod audit;
 pub mod connection;
+pub mod defect;
 pub mod device;
 pub mod endpoint;
 pub mod evidence;
@@ -20,10 +22,12 @@ pub mod room;
 pub mod signal_path;
 
 pub use address::{AddressParseError, DeviceAddress};
+pub use audit::{Actor, AuditEvent, AuditEventType};
 pub use connection::{Connection, ConnectionExpectation, SignalType, Transport, VideoRequirement};
+pub use defect::{Defect, DefectId, DefectStatus, Severity};
 pub use device::{Device, DeviceType};
 pub use endpoint::{Endpoint, EndpointKind};
-pub use evidence::{DefectId, EvidenceId, EvidenceKind, EvidenceRef};
+pub use evidence::{EvidenceId, EvidenceKind, EvidenceRef};
 pub use id::{ConnectionId, DeviceId, EndpointId, ProjectId, RoomId, TestSuiteId};
 pub use measurement::{Measurement, MeasurementSource, MeasurementValue, Tolerance, Unit};
 pub use project::Project;
