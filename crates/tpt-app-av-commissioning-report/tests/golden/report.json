@@ -1,0 +1,145 @@
+{
+  "project_name": "Boardroom Fitout",
+  "project_id": "prj-boardroom-01",
+  "client": "Meridian Business <Group>",
+  "site": "Level 12, 88 Collins St",
+  "generated_at": "2026-01-15T18:02:00Z",
+  "software_version": "0.1.0",
+  "room_count": 2,
+  "device_count": 7,
+  "connection_count": 11,
+  "summary": {
+    "total": 4,
+    "pass": 1,
+    "fail": 1,
+    "warning": 0,
+    "blocked": 0,
+    "skipped": 0,
+    "manual": 2,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "test_id": "display.identity",
+      "status": "pass",
+      "mode": "automated",
+      "started_at": "2026-01-15T18:00:00Z",
+      "completed_at": "2026-01-15T18:00:02Z",
+      "evidence": [
+        {
+          "id": "ev-1",
+          "project": "prj-boardroom-01",
+          "kind": "screenshot",
+          "relative_path": "assets/evidence/run-7/0000.png",
+          "description": "test pattern captured",
+          "captured_at": "2026-01-15T18:00:01Z",
+          "sha256": "9f2c0b"
+        }
+      ],
+      "measurements": [
+        {
+          "name": "response_time_ms",
+          "value": {
+            "Integer": 18
+          },
+          "unit": null,
+          "tolerance": {
+            "kind": "exact"
+          },
+          "expected": null,
+          "source": "device_response"
+        }
+      ],
+      "messages": [
+        "identity matches: ACME Beamer 9000"
+      ],
+      "error": null
+    },
+    {
+      "test_id": "display.signal",
+      "status": "fail",
+      "mode": "automated",
+      "started_at": "2026-01-15T18:00:03Z",
+      "completed_at": "2026-01-15T18:00:05Z",
+      "evidence": [],
+      "measurements": [],
+      "messages": [
+        "no signal on hdmi2",
+        "resolution read 0x0"
+      ],
+      "error": "device reported <no-signal> & 0x0"
+    },
+    {
+      "test_id": "projector.image-quality",
+      "status": "manual",
+      "mode": "manual",
+      "started_at": "2026-01-15T18:00:06Z",
+      "completed_at": "2026-01-15T18:01:00Z",
+      "evidence": [],
+      "measurements": [],
+      "messages": [],
+      "error": null,
+      "checklist": {
+        "title": "Projector image quality",
+        "items": [
+          {
+            "id": "item-1",
+            "label": "Focus uniform across the screen",
+            "verdict": "pass",
+            "note": null,
+            "evidence": []
+          },
+          {
+            "id": "item-2",
+            "label": "Geometry undistorted",
+            "verdict": null,
+            "note": null,
+            "evidence": []
+          }
+        ]
+      }
+    },
+    {
+      "test_id": "pa.speech-level",
+      "status": "manual",
+      "mode": "semi_automated",
+      "started_at": "2026-01-15T18:01:01Z",
+      "completed_at": "2026-01-15T18:01:10Z",
+      "evidence": [],
+      "measurements": [],
+      "messages": [
+        "measured level -18 dBFS"
+      ],
+      "error": null,
+      "pending": {
+        "software_status": "warning",
+        "prompt": "Confirm the measured level"
+      }
+    }
+  ],
+  "defects": [
+    {
+      "id": "DEF-001",
+      "title": "Display does not lock signal on input 3",
+      "status": "investigating"
+    }
+  ],
+  "evidence": [
+    "assets/evidence/run-7/0000.png"
+  ],
+  "sign_off": {
+    "signatory": {
+      "name": "A. Engineer",
+      "title": "Commissioning Engineer",
+      "company": "TPT Solutions",
+      "signed_at": "2026-01-15T18:02:10Z"
+    },
+    "result": {
+      "kind": "approved_with_exceptions",
+      "exceptions": [
+        "DEF-001 accepted: input 3 unused in final layout"
+      ]
+    },
+    "notes": "Handover walkthrough attended by the client."
+  }
+}

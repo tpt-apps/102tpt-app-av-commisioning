@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Phase 20/29 — HTML report output and golden reports (§31–32, §46.4)
+  - `Report::render(Html)`: standalone document with inline CSS (no external
+    assets), cover details, system and status summaries, results with
+    labelled word+symbol status badges (never colour alone, §28), defects,
+    and sign-off with accepted exceptions; all dynamic content escaped
+  - Golden report tests: a deterministic fixture (pinned timestamps, ids,
+    checklist, pending confirmation, defects, sign-off) renders
+    Markdown/HTML/CSV/JSON byte-stable against checked-in files in
+    `tests/golden/`; `UPDATE_GOLDEN=1` regenerates
+
 - Phase 11 — Media evidence catalogue on `tpt-av-asset` (§24)
   - `core::media::MediaCatalog`: an `AssetDb` (`assets/media.redb`) listing
     project media evidence with metadata (screenshots/photos as images,

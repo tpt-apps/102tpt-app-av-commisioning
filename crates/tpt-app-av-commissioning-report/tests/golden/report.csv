@@ -1,0 +1,5 @@
+test_id,status,mode,started_at,completed_at,error
+display.identity,pass,automated,2026-01-15T18:00:00+00:00,2026-01-15T18:00:02+00:00,
+display.signal,fail,automated,2026-01-15T18:00:03+00:00,2026-01-15T18:00:05+00:00,device reported <no-signal> & 0x0
+projector.image-quality,manual,manual,2026-01-15T18:00:06+00:00,2026-01-15T18:01:00+00:00,
+pa.speech-level,manual,semi_automated,2026-01-15T18:01:01+00:00,2026-01-15T18:01:10+00:00,

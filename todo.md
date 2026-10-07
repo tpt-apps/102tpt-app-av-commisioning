@@ -271,14 +271,14 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 - [x] `tpt-app-av-commissioning-report`
   - [ ] PDF output (cover page, project details, system summary, device inventory, topology, test summary, detailed results, defects, evidence, engineer sign-off, software/profile version, date/time)
-  - [ ] HTML output
+  - [x] HTML output (standalone document with inline CSS; every status is a labelled word+symbol badge — never colour alone (§28); all dynamic content HTML-escaped)
   - [x] CSV output
   - [x] JSON output
   - [x] Markdown output (used for the summary/headline formats)
 - [x] Report distinguishes automated test / manual inspection / engineer acceptance (summary counts by `TestStatus`, incl. Manual/Inconclusive — never implies measurements that didn't occur)
 - [x] Electronic sign-off (engineer name, date, result incl. "PASS WITH ACCEPTED EXCEPTIONS", exception list)
 - [ ] Audit event recorded when a report is signed (sign-off types exist; audit wiring is Phase 17)
-- [ ] Unit tests: report generation, golden reports (§46.1, §46.4)
+- [x] Unit tests: report generation, golden reports (§46.1, §46.4 — deterministic fixture with pinned timestamps renders Markdown/HTML/CSV/JSON against checked-in golden files; `UPDATE_GOLDEN=1` regenerates)
 
 ## Phase 21 — Desktop UI (Tauri) (§28)
 
