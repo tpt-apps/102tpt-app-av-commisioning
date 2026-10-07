@@ -1,11 +1,15 @@
 //! TPT AV Commissioning — command-line interface (§34).
 //!
 //! Shares the core engine with the desktop UI. Automation-friendly: exits 0
-//! when everything validates, 1 when validation fails, 2 on usage errors.
+//! when everything validates (or no test failed), 1 on failures, 2 on usage
+//! errors.
 //!
 //! Licensed under either of MIT OR Apache-2.0, at your option.
 
 #![forbid(unsafe_code)]
+
+mod report_cmd;
+mod test_cmd;
 
 use std::fs;
 use std::path::Path;
@@ -19,14 +23,19 @@ TPT AV Commissioning — executable commissioning for professional AV systems.
 
 Usage:
   tpt-app-av-commissioning-cli validate --project <file> [--suite <path>]
+  tpt-app-av-commissioning-cli test --project <file> --room <name> [--profiles <path>] [--dry-run]
+  tpt-app-av-commissioning-cli report --project <dir> [--format <markdown|html|csv|json>] [--run <id>]
   tpt-app-av-commissioning-cli --version
   tpt-app-av-commissioning-cli --help
 
 Commands:
   validate   Validate a project manifest and/or test procedure suite file(s).
+  test       Run commissioning tests for the devices in one room.
+  report     Render a stored test run from a project directory.
 
 Options:
-  --project <file>   Path to a project manifest (YAML, schema_version 1).
+  --project <path>   For `validate`/`test`: a project manifest (YAML). For
+                     `report`: a project directory (with project.sqlite).
   --suite <path>     Path to a test procedure YAML file, or a directory of
                      such files. Each document is validated against the test
                      procedure DSL.
@@ -34,9 +43,9 @@ Options:
   --help             Print this help.
 
 Exit codes:
-  0  everything validated
-  1  one or more files failed validation
-  2  usage error or an input file could not be read
+  0  everything validated / no test failed
+  1  one or more files failed validation / a test failed
+  2  usage error or an input could not be read
 ";
 
 fn main() -> ExitCode {
@@ -55,7 +64,7 @@ fn main() -> ExitCode {
 
 fn run(args: &[String]) -> Result<bool, String> {
     if args.is_empty() {
-        return Err("no command given (expected `validate`)".to_owned());
+        return Err("no command given (implemented: validate, test, report)".to_owned());
     }
     match args[0].as_str() {
         "--help" | "-h" => {
@@ -67,7 +76,11 @@ fn run(args: &[String]) -> Result<bool, String> {
             Ok(true)
         }
         "validate" => run_validate(&args[1..]),
-        other => Err(format!("unknown command `{other}` (implemented: validate)")),
+        "test" => test_cmd::run(&args[1..]),
+        "report" => report_cmd::run(&args[1..]),
+        other => Err(format!(
+            "unknown command `{other}` (implemented: validate, test, report)"
+        )),
     }
 }
 

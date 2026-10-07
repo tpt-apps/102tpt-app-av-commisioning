@@ -15,15 +15,17 @@ devices:
   - id: matrix-01
     type: matrix
     name: "Crestron DM-MD8X8"
+    room: room-01
     manufacturer: "Crestron"
     model: "DM-MD8X8"
     address: "192.168.10.20"
   - id: projector-01
     type: projector
     name: "Epson EB-L1100U"
+    room: room-01
     manufacturer: "Epson"
     model: "EB-L1100U"
-    address: "192.168.10.21"
+    address: "192.168.10.21:8000"
 
 endpoints:
   - id: m1-out1

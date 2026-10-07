@@ -13,7 +13,15 @@ categories.workspace = true
 tpt-app-av-commissioning-core.workspace = true
 tpt-app-av-commissioning-model.workspace = true
 tpt-app-av-commissioning-test.workspace = true
+tpt-app-av-commissioning-device.workspace = true
+tpt-app-av-commissioning-driver.workspace = true
+tpt-app-av-commissioning-runner.workspace = true
+tpt-app-av-commissioning-report.workspace = true
+tpt-app-av-commissioning-profile.workspace = true
+tpt-app-av-commissioning-driver-generic.workspace = true
+tpt-app-av-commissioning-driver-osc.workspace = true
 
 [dev-dependencies]
 assert_cmd = "2"
 predicates = "3"
+tpt-app-av-commissioning-testkit.workspace = true

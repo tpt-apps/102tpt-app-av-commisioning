@@ -1422,8 +1422,16 @@ dependencies = [
  "assert_cmd",
  "predicates",
  "tpt-app-av-commissioning-core",
+ "tpt-app-av-commissioning-device",
+ "tpt-app-av-commissioning-driver",
+ "tpt-app-av-commissioning-driver-generic",
+ "tpt-app-av-commissioning-driver-osc",
  "tpt-app-av-commissioning-model",
+ "tpt-app-av-commissioning-profile",
+ "tpt-app-av-commissioning-report",
+ "tpt-app-av-commissioning-runner",
  "tpt-app-av-commissioning-test",
+ "tpt-app-av-commissioning-testkit",
 ]
 
 [[package]]

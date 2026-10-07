@@ -1,0 +1,21 @@
+# Device profile fixture: binds the Epson projector to the OSC driver.
+# Used by the CLI `test --profiles` integration test (dry run binds the
+# driver without touching the network).
+
+schema_version: 1
+device:
+  id: epson-osc-projector
+  match:
+    manufacturer: "Epson"
+    model: "EB-L1100U"
+  protocol:
+    type: osc
+    port: 8000
+    timeout_ms: 1000
+  commands:
+    power_on: { send: "/projector/power", args: ["on"] }
+    power_off: { send: "/projector/power", args: ["off"] }
+  state:
+    power:
+      query: "/projector/power"
+      parser: bool

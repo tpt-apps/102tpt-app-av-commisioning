@@ -77,6 +77,11 @@ pub struct ManifestDevice {
     #[serde(rename = "type")]
     pub device_type: DeviceType,
     pub name: String,
+    /// The room this device is installed in (a `rooms` id). Optional for
+    /// compatibility with earlier manifests; the CLI's
+    /// `test --room <name>` filters on it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub room: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub manufacturer: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
