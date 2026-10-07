@@ -23,3 +23,7 @@ tpt-app-av-commissioning-device.workspace = true
 tpt-app-av-commissioning-driver.workspace = true
 tpt-app-av-commissioning-test.workspace = true
 tpt-app-av-commissioning-runner.workspace = true
+# Media evidence catalogue and derived-artifact caches (§24, Phase 11)
+tpt-av-asset-utils.workspace = true
+tpt-av-asset-db.workspace = true
+tpt-av-asset-cache.workspace = true

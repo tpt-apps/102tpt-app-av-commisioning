@@ -37,6 +37,8 @@ pub enum ProjectStoreError {
     BaselineExists(String),
     #[error("no defect with id `{0}`")]
     MissingDefect(String),
+    #[error("media catalogue error: {0}")]
+    Media(String),
     #[error("project meta not set")]
     NoProjectMeta,
 }
@@ -324,6 +326,37 @@ impl ProjectStore {
     /// Managed asset layout for this project.
     pub fn assets(&self) -> ProjectAssets {
         ProjectAssets::new(&self.root)
+    }
+
+    /// Add media evidence and register it in the project's media catalogue
+    /// (§24, Phase 11): screenshots/photos/audio/video recordings land in
+    /// the `AssetDb` with their metadata, and audio recordings get a
+    /// waveform peak cache generated for the UI's waveform display.
+    /// Non-media kinds behave like [`ProjectAssets::add_evidence`].
+    pub fn add_media_evidence(
+        &mut self,
+        run_id: &str,
+        project: &ProjectId,
+        kind: EvidenceKind,
+        bytes: &[u8],
+        extension: &str,
+        description: Option<String>,
+    ) -> Result<EvidenceRef, ProjectStoreError> {
+        let evidence =
+            self.assets()
+                .add_evidence(run_id, project, kind, bytes, extension, description)?;
+        let file = self.root.join(&evidence.relative_path);
+        let mut catalog = crate::media::MediaCatalog::open(&self.root.join("assets"))
+            .map_err(|e| ProjectStoreError::Media(e.to_string()))?;
+        catalog
+            .register(&evidence, &file)
+            .map_err(|e| ProjectStoreError::Media(e.to_string()))?;
+        if kind == EvidenceKind::AudioRecording {
+            catalog
+                .waveform(&file)
+                .map_err(|e| ProjectStoreError::Media(e.to_string()))?;
+        }
+        Ok(evidence)
     }
 
     // -- project meta ------------------------------------------------------
@@ -1278,6 +1311,67 @@ mod tests {
         );
         assert_eq!(events[2].object_id.as_deref(), Some("d-1"));
         assert!(events.windows(2).all(|w| w[0].timestamp <= w[1].timestamp));
+        drop(store);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn media_evidence_is_catalogued_with_waveform() {
+        use crate::media::MediaCatalog;
+        use tpt_app_av_commissioning_test::audio::{generate_tone, write_wav};
+        use tpt_app_av_commissioning_test::ToneSpec;
+
+        let dir = tmp_dir("media-evidence");
+        let project = ProjectId::new("prj-1");
+        let mut store = ProjectStore::create(&dir, &meta()).unwrap();
+
+        let scratch = dir.join("tone-scratch.wav");
+        write_wav(
+            &generate_tone(&ToneSpec {
+                duration_ms: 100,
+                ..ToneSpec::default()
+            }),
+            48_000,
+            &scratch,
+        )
+        .unwrap();
+        let wav = std::fs::read(&scratch).unwrap();
+        let _ = std::fs::remove_file(&scratch);
+
+        let evidence = store
+            .add_media_evidence(
+                "run-1",
+                &project,
+                EvidenceKind::AudioRecording,
+                &wav,
+                "wav",
+                Some("1 kHz tone".to_owned()),
+            )
+            .unwrap();
+
+        // The catalogue lists the recording; the peaks file exists.
+        let catalog = MediaCatalog::open(&dir.join("assets")).unwrap();
+        let listed = catalog.list().unwrap();
+        assert_eq!(listed.len(), 1);
+        let info = catalog
+            .lookup(&dir.join(&evidence.relative_path))
+            .unwrap()
+            .unwrap();
+        assert_eq!(info.id, listed[0].id);
+        assert!(info.audio.as_ref().unwrap().sample_rate == 48_000);
+        drop(catalog);
+
+        // The result persists as before, evidence metadata intact.
+        let result = TestResult::new(
+            TestId::new("audio.tone"),
+            TestStatus::Pass,
+            ExecutionMode::Automated,
+        )
+        .with_evidence(evidence);
+        store.save_result("run-1", &project, &result).unwrap();
+        let stored = store.results_for_run("run-1").unwrap();
+        assert_eq!(stored[0].evidence.len(), 1);
+
         drop(store);
         std::fs::remove_dir_all(&dir).unwrap();
     }

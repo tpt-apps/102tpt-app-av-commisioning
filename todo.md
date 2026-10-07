@@ -202,7 +202,7 @@ Tracking checklist for the whole project, organized by phase. License: dual MIT 
 
 - [x] `EvidenceKind` enum (Screenshot, Photo, AudioRecording, VideoRecording, NetworkResult, DeviceResponse, Measurement, Configuration, OperatorNote)
 - [x] Evidence stored as immutable project assets (referenced from results, not embedded in DB)
-- [ ] Integrate `tpt-av-asset` for test media assets, cached screenshots, recordings, generated evidence, project asset management
+- [x] Integrate `tpt-av-asset` for test media assets, cached screenshots, recordings, generated evidence, project asset management (`core::media::MediaCatalog`: `AssetDb` registry at `assets/media.redb` + `CacheStorage` under `assets/cache/`; `ProjectStore::add_media_evidence` registers media evidence and generates resumable waveform `.peaks` caches for audio recordings; thumbnails/proxies remain for the UI phase)
 
 ## Phase 12 — Measurement Model (§19)
 

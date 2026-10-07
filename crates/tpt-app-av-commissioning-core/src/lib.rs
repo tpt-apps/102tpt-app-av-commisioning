@@ -9,6 +9,7 @@
 
 pub mod baseline;
 pub mod manifest;
+pub mod media;
 pub mod snapshot;
 pub mod store;
 
@@ -17,5 +18,6 @@ pub use baseline::{
     DeviceFingerprint, Drift, Regression, RunComparison,
 };
 pub use manifest::{Manifest, ManifestError};
+pub use media::{MediaCatalog, MediaError};
 pub use snapshot::{ConfigSnapshot, SnapshotLabel, SnapshotStore};
 pub use store::{ProjectAssets, ProjectMeta, ProjectStore, ProjectStoreError, StoredBaseline};

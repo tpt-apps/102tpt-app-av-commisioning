@@ -41,6 +41,13 @@ Persisted tables:
   baseline snapshot; older databases are migrated on open)
 - `audit_log` (§33 event trail)
 
+Media evidence additionally lives in a `tpt-av-asset` catalogue next to the
+asset tree: `assets/media.redb` (the `AssetDb` registry of media files with
+their metadata) and `assets/cache/` (derived artifacts — waveform `.peaks`
+for audio recordings, generated resumably by `tpt-av-asset-cache`).
+`ProjectStore::add_media_evidence` writes the immutable evidence file,
+registers it in the catalogue, and derives the waveform in one step.
+
 ## Manifest format (§26)
 
 The manifest captures the portable system definition and is version-controllable:

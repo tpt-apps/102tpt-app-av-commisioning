@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Phase 11 — Media evidence catalogue on `tpt-av-asset` (§24)
+  - `core::media::MediaCatalog`: an `AssetDb` (`assets/media.redb`) listing
+    project media evidence with metadata (screenshots/photos as images,
+    recordings as audio/video; WAV recordings get sample rate, channels and
+    duration extracted), plus `assets/cache/` for derived artifacts
+  - `ProjectStore::add_media_evidence`: writes the immutable evidence file,
+    registers it in the catalogue, and generates the waveform `.peaks` cache
+    for audio recordings via `tpt-av-asset-cache`'s resumable generator
+    (real-time-safe `WaveformReader` access for the UI's waveform display)
+  - Catalogue databases are opened per operation: `redb` locks exclusively,
+    so the store never holds one open across user interactions
+
 - Phase 12 — Audio test-tone measurement (§13.6, §19) on the TPT ecosystem
   - `test::audio`: tone generation (`tpt-dsp-audio` oscillator), 16-bit PCM
     WAV I/O (`tpt-av-cadence-wav`, stereo downmixed on read), and buffer
